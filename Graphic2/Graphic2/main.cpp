@@ -44,6 +44,8 @@ class DEMO_APP
 	XTime							TimeWizard;
 	ID3D11Buffer*					VertexBufferStar;
 	ID3D11Buffer*					IndexBufferStar;
+	ID3D11Buffer*					VertexBufferPlane;
+	ID3D11Buffer*					IndexBufferPlane;
 	ID3D11VertexShader*				DirectVertShader[2];
 	ID3D11PixelShader*				DirectPixShader[2];
 	ID3D11InputLayout*				DirectInputLay[2];
@@ -99,6 +101,11 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
     ShowWindow( window, SW_SHOW );
 	
+	vector<XMFLOAT4> verts;
+	vector<XMFLOAT4> norms;
+	vector<XMFLOAT3> uvs;
+	vector<unsigned int> vert_indices, norm_indices, uvs_indices;
+
 #pragma region Initialization
 	//Initalizing ID3D11Device & IDXGISwapChain & ViewPorts objects
 	init3D(window);
@@ -107,7 +114,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	WorldShader.projectView = XMMatrixIdentity();
 	g_newProjection = XMMatrixIdentity();
 	m_viewMatrix = XMMatrixIdentity();
-	m_viewMatrix = XMMatrixTranslation(0.0f, 1.0f, -3.0f);
+	m_viewMatrix = XMMatrixTranslation(0.0f, 2.0f, -3.0f);
 	WorldShader.projectView = XMMatrixPerspectiveFovLH(XMConvertToRadians(FIELDOFVIEW), ASPECTRATIO, ZNEAR, ZFAR);
 
 	translating.Translate = XMMatrixIdentity();
@@ -121,10 +128,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	bool toggle = true;
 	SIMPLE_VERTEX Star[12];
 
-	Star[10].XYZW = XMFLOAT4(0, 2, -0.25f, 1);
+	Star[10].XYZW = XMFLOAT4(0, 1, -0.25f, 1);
 	Star[10].RGBA = XMFLOAT4(1, 0, 1, 1);
 
-	Star[11].XYZW = XMFLOAT4(0, 2, 0.25f, 1);
+	Star[11].XYZW = XMFLOAT4(0, 1, 0.25f, 1);
 	Star[11].RGBA = XMFLOAT4(0, 0, 1, 1);
 
 	for (unsigned int i = 0; i < 10; i++)
@@ -132,13 +139,13 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		if (toggle)
 		{
 			Star[i].XYZW = XMFLOAT4(sin(((i * 36) * 3.14159f) / 180), 
-				cos(((i * 36) * 3.14159f) / 180) + 2, 0.0f , 1);
+				cos(((i * 36) * 3.14159f) / 180) + 1, 0.0f , 1);
 			Star[i].RGBA = XMFLOAT4(1, 0, 0, 1);
 		}
 		else
 		{
 			Star[i].XYZW = XMFLOAT4(sin(((i * 36) * 3.14159f) / 180) * .50f,
-				cos(((i * 36) * 3.14159f) / 180) * .50f + 2, 0.0f, 1);
+				cos(((i * 36) * 3.14159f) / 180) * .50f + 1, 0.0f, 1);
 			Star[i].RGBA = XMFLOAT4(1, 0, 0, 1);
 		}
 
@@ -155,8 +162,21 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 #pragma region Creating Plane
 
+	LoadModel::LoadObj("PlaneSuper.obj", verts, uvs, norms,
+		vert_indices, uvs_indices, norm_indices);
 	
-	
+	SIMPLE_VERTEX* plane = new SIMPLE_VERTEX[verts.size()];
+	for (unsigned int i = 0; i < verts.size(); i++)
+	{
+		plane[i].XYZW = verts[i];
+		plane[i].RGBA = XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f);
+	}
+
+	unsigned int *planeindices = new unsigned int[vert_indices.size()];
+	for (unsigned int i = 0; i < vert_indices.size(); i++)
+	{
+		planeindices[i] = vert_indices[i];
+	}
 
 #pragma endregion
 
@@ -186,6 +206,34 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&indexData, sizeof(indexData));
 	indexData.pSysMem = &indice;
 	g_pd3dDevice->CreateBuffer(&indexBuffDesc, &indexData, &IndexBufferStar);
+#pragma endregion
+
+#pragma region VertexBuffer for Floor
+	D3D11_BUFFER_DESC PlanebufferDesc;
+	ZeroMemory(&PlanebufferDesc, sizeof(PlanebufferDesc));
+	PlanebufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	PlanebufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	PlanebufferDesc.ByteWidth = sizeof(SIMPLE_VERTEX) * verts.size();
+
+	D3D11_SUBRESOURCE_DATA sub_data_plane;
+	ZeroMemory(&sub_data_plane, sizeof(sub_data_plane));
+	sub_data_plane.pSysMem = plane;
+	g_pd3dDevice->CreateBuffer(&PlanebufferDesc, &sub_data_plane, &VertexBufferPlane);
+#pragma endregion
+
+#pragma region IndexBuffer for Floor
+	D3D11_BUFFER_DESC indexBuffDesc_Plane;
+	ZeroMemory(&indexBuffDesc_Plane, sizeof(indexBuffDesc_Plane));
+	indexBuffDesc_Plane.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBuffDesc_Plane.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBuffDesc_Plane.ByteWidth = sizeof(unsigned int) * vert_indices.size();
+
+	D3D11_SUBRESOURCE_DATA indexData_Plane;
+	ZeroMemory(&indexData_Plane, sizeof(indexData_Plane));
+	indexData_Plane.pSysMem = planeindices;
+	g_pd3dDevice->CreateBuffer(&indexBuffDesc_Plane, &indexData_Plane, &IndexBufferPlane);
+
+	delete[] planeindices;
 #pragma endregion
 
 #pragma region ShaderData
@@ -348,7 +396,7 @@ bool DEMO_APP::Run()
 	TimeWizard.Signal();
 
 	float timer = (float)TimeWizard.Delta();
-	WorldShader.worldMatrix = XMMatrixMultiply(XMMatrixRotationY(timer), WorldShader.worldMatrix);
+	//WorldShader.worldMatrix = XMMatrixMultiply(XMMatrixRotationY(timer), WorldShader.worldMatrix);
 
 	if (g_ScreenChanged)
 	{
@@ -426,11 +474,11 @@ bool DEMO_APP::Run()
 
 		if (prevPoint.x != newPoint.x)
 		{
-			m_viewMatrix = XMMatrixMultiply(m_viewMatrix, XMMatrixRotationY((prevPoint.x - newPoint.x) * .1f)); //Global
+			m_viewMatrix = XMMatrixMultiply(m_viewMatrix, XMMatrixRotationY((prevPoint.x - newPoint.x) * .01f)); //Global
 		}
 		if (prevPoint.y != newPoint.y)
 		{
-			m_viewMatrix = XMMatrixMultiply(XMMatrixRotationY((prevPoint.y - newPoint.y) * .1f), m_viewMatrix); //LOCAL
+			m_viewMatrix = XMMatrixMultiply(XMMatrixRotationX((prevPoint.y - newPoint.y) * .01f), m_viewMatrix); //LOCAL
 		}
 
 		prevPoint = newPoint;
@@ -479,12 +527,17 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->VSSetShader(DirectVertShader[1], NULL, NULL);
 	g_pd3dDeviceContext->PSSetShader(DirectPixShader[1], NULL, NULL);
 
-
-
 	g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferStar, DXGI_FORMAT_R32_UINT, 0);
 
 	g_pd3dDeviceContext->DrawIndexed(60, 0, 0);
+#pragma endregion
+
+#pragma region Drawing Floor
+	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferPlane, &stride, &offsets);
+	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferPlane, DXGI_FORMAT_R32_UINT, 0);
+
+	g_pd3dDeviceContext->DrawIndexed(6, 0, 0);
 #pragma endregion
 
 	g_pSwapChain->Present(0, 0);
@@ -515,6 +568,8 @@ void DEMO_APP::Clean3d()
 
 	VertexBufferStar->Release();
 	IndexBufferStar->Release();
+	VertexBufferPlane->Release();
+	IndexBufferPlane->Release();
 	DirectVertShader[0]->Release();
 	DirectPixShader[0]->Release();
 	DirectInputLay[0]->Release();

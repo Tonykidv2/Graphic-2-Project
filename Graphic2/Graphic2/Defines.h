@@ -4,7 +4,9 @@
 #include <ctime>
 #include <math.h>
 #include <Windows.h>
+#include <vector>
 #include <DirectXMath.h>
+
 #include "Load Model.h"
 
 using namespace DirectX;
