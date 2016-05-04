@@ -116,7 +116,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	g_ScreenChanged = false;
 #pragma endregion
 
-#pragma region Creating Shape
+#pragma region Creating Star Shape
 
 	bool toggle = true;
 	SIMPLE_VERTEX Star[12];
@@ -624,7 +624,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 							   
 							   g_ScreenChanged = true;
 							   //g_newProjection = Projection((nHeight / nWidth), FIELDOFVIEW, ZNEAR, ZFAR);
-							   g_newProjection = XMMatrixPerspectiveFovLH(XMConvertToRadians(FIELDOFVIEW), (nHeight / nWidth), ZNEAR, ZFAR);
+							   g_newProjection = XMMatrixPerspectiveFovLH(XMConvertToRadians(FIELDOFVIEW), (nWidth/ nHeight), ZNEAR, ZFAR);
 						   }
 		};
     }

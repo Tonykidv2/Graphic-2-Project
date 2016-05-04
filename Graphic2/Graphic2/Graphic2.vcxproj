@@ -147,6 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.h" />
+    <ClInclude Include="Load Model.h" />
     <ClInclude Include="XTime.h" />
   </ItemGroup>
   <ItemGroup>

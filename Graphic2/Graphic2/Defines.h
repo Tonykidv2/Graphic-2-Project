@@ -5,6 +5,7 @@
 #include <math.h>
 #include <Windows.h>
 #include <DirectXMath.h>
+#include "Load Model.h"
 
 using namespace DirectX;
 using namespace std;
