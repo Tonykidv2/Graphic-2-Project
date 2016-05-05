@@ -1,12 +1,12 @@
 struct INPUT_PIXEL
 {
 	float4 pos : SV_POSITION;
-	//float4 color : COLOR;
 	float3 uv : UV;
 	float3 normal : NORMALS;
 };
 
-texture2D TEXTURE : register(t0);
+TextureCube TEXTURE : register(t0);
+Texture2D Texture1 : register(t1);
 SamplerState FILTER : register(s0);
 
 cbuffer texturing : register(b0)
@@ -17,9 +17,13 @@ cbuffer texturing : register(b0)
 
 float4 main( INPUT_PIXEL colorFromRasterizer ) : SV_TARGET
 {
-	float2 uv = colorFromRasterizer.uv.xy;
 	
-	uv[0] = uv[0] * .25f + WhichTexture;
-	
-	return TEXTURE.Sample(FILTER, uv).grab;
+	if(WhichTexture == 0)
+		return TEXTURE.Sample(FILTER, colorFromRasterizer.normal).rgba;
+
+	if(WhichTexture == 1)
+		return Texture1.Sample(FILTER, colorFromRasterizer.uv).rgba;
+
+
+	return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

@@ -4,15 +4,11 @@
 namespace LoadModel
 {
 	bool LoadObj(const char* path, std::vector<DirectX::XMFLOAT4>& out_vertex, 
-		std::vector<DirectX::XMFLOAT3>& out_UVs, std::vector<DirectX::XMFLOAT4>& out_Normals, 
+		std::vector<DirectX::XMFLOAT3>& out_UVs, std::vector<DirectX::XMFLOAT3>& out_Normals, 
 		std::vector<unsigned int>& vertex_indices, std::vector<unsigned int>& uv_indices,
 		std::vector<unsigned int>& normal_indices)
 	{
-		std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
-		std::vector<DirectX::XMFLOAT4> temp_Vertices;
-		std::vector<DirectX::XMFLOAT3> temp_uv;
-		std::vector<DirectX::XMFLOAT4> temp_normal;
-
+		
 		char input, input2;
 		bool checked = false;
 		
@@ -44,12 +40,12 @@ namespace LoadModel
 					{
 						DirectX::XMFLOAT3 temp;
 						fin >> temp.x >> temp.y;
-						//temp.y = 1.0f - temp.y;
+						temp.y = 1.0f - temp.y;
 						out_UVs.push_back(temp);
 					}
 					else if (input == 'n')
 					{
-						DirectX::XMFLOAT4 temp;
+						DirectX::XMFLOAT3 temp;
 						fin >> temp.x >> temp.y >> temp.z;
 						//temp.x = -temp.x;
 						out_Normals.push_back(temp);
@@ -90,4 +86,6 @@ namespace LoadModel
 
 		return false;
 	}
+
+
 }

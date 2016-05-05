@@ -41,9 +41,10 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, worldMatrix);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, viewMatrix);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, projectionMatrix);
-	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Translate);
-	//sendToRasterizer.colorOut = fromVertexBuffer.color;
+	//sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Translate);
+
 	sendToRasterizer.uvOUT = fromVertexBuffer.uv ;
+	sendToRasterizer.uvOUT.z = 0;
 	sendToRasterizer.normalOUT = fromVertexBuffer.normal;
 
 	return sendToRasterizer;

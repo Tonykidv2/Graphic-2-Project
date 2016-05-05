@@ -8,6 +8,8 @@
 #include <DirectXMath.h>
 
 #include "Load Model.h"
+#include "DDSTextureLoader.h"
+
 
 using namespace DirectX;
 using namespace std;

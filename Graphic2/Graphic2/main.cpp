@@ -42,16 +42,40 @@ class DEMO_APP
 	WNDPROC							appWndProc;
 	HWND							window;
 	XTime							TimeWizard;
+	
+	//Model Data
 	ID3D11Buffer*					VertexBufferStar;
 	ID3D11Buffer*					IndexBufferStar;
 	ID3D11Buffer*					VertexBufferPlane;
 	ID3D11Buffer*					IndexBufferPlane;
+	ID3D11Buffer*					VertexBufferSkyBox;
+	ID3D11Buffer*					IndexBufferSkyBox;
+
+
+	//Shaders
 	ID3D11VertexShader*				DirectVertShader[2];
 	ID3D11PixelShader*				DirectPixShader[2];
 	ID3D11InputLayout*				DirectInputLay[2];
-	ID3D11Buffer*					CostantBuffer[2];
-	ID3D11Buffer*					CostantPixelBuffer;
 
+	//Constant Buffers
+	ID3D11Buffer*					constantBuffer[2];
+	ID3D11Buffer*					constantPixelBuffer;
+
+	//Textures & Samples
+	ID3D11ShaderResourceView*       SkyBoxShaderView;
+	ID3D11ShaderResourceView*		FloorShaderView;
+	ID3D11SamplerState*				sampleTexture;
+
+	//RasterStates
+	ID3D11RasterizerState*			DefaultRasterState;
+	ID3D11RasterizerState*			SkyBoxRasterState;
+
+	//Blend States
+	ID3D11BlendState*				BlendState;
+
+	unsigned int SkyBoxIndexCount;
+	unsigned int PlaneIndexCount;
+	unsigned int StarIndexCount;
 
 	void init3D(HWND hWnd);
 	void Clean3d();
@@ -102,7 +126,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
     ShowWindow( window, SW_SHOW );
 	
 	vector<XMFLOAT4> verts;
-	vector<XMFLOAT4> norms;
+	vector<XMFLOAT3> norms;
 	vector<XMFLOAT3> uvs;
 	vector<unsigned int> vert_indices, norm_indices, uvs_indices;
 
@@ -158,6 +182,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		0, 9, 11, 9, 8, 11, 8, 7, 11, 7, 6, 11, 6, 5, 11, 5, 4, 11, 4, 3, 11, 3, 2, 11, 2, 1, 11, 1, 0, 11
 	};
 
+	StarIndexCount = 60;
 #pragma endregion
 
 #pragma region Creating Plane
@@ -165,20 +190,114 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	LoadModel::LoadObj("PlaneSuper.obj", verts, uvs, norms,
 		vert_indices, uvs_indices, norm_indices);
 	
-	SIMPLE_VERTEX* plane = new SIMPLE_VERTEX[verts.size()];
+	VERTEX* plane = new VERTEX[verts.size()];
 	for (unsigned int i = 0; i < verts.size(); i++)
 	{
 		plane[i].XYZW = verts[i];
-		plane[i].RGBA = XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f);
+		plane[i].UV = uvs[i];
+		//plane[i].normals = norms[i];
 	}
-
+	plane[0].normals = norms[0];
 	unsigned int *planeindices = new unsigned int[vert_indices.size()];
 	for (unsigned int i = 0; i < vert_indices.size(); i++)
 	{
 		planeindices[i] = vert_indices[i];
 	}
 
+#pragma region VertexBuffer for Floor
+	D3D11_BUFFER_DESC PlanebufferDesc;
+	ZeroMemory(&PlanebufferDesc, sizeof(PlanebufferDesc));
+	PlanebufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	PlanebufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	PlanebufferDesc.ByteWidth = sizeof(VERTEX) * verts.size();
+
+	D3D11_SUBRESOURCE_DATA sub_data_plane;
+	ZeroMemory(&sub_data_plane, sizeof(sub_data_plane));
+	sub_data_plane.pSysMem = plane;
+	g_pd3dDevice->CreateBuffer(&PlanebufferDesc, &sub_data_plane, &VertexBufferPlane);
 #pragma endregion
+
+#pragma region IndexBuffer for Floor
+	D3D11_BUFFER_DESC indexBuffDesc_Plane;
+	ZeroMemory(&indexBuffDesc_Plane, sizeof(indexBuffDesc_Plane));
+	indexBuffDesc_Plane.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBuffDesc_Plane.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBuffDesc_Plane.ByteWidth = sizeof(unsigned int) * vert_indices.size();
+
+	D3D11_SUBRESOURCE_DATA indexData_Plane;
+	ZeroMemory(&indexData_Plane, sizeof(indexData_Plane));
+	indexData_Plane.pSysMem = planeindices;
+	g_pd3dDevice->CreateBuffer(&indexBuffDesc_Plane, &indexData_Plane, &IndexBufferPlane);
+
+#pragma endregion
+
+	PlaneIndexCount = vert_indices.size();
+	delete[] planeindices;
+
+#pragma endregion
+
+	verts.clear();
+	uvs.clear();
+	norms.clear();
+	vert_indices.clear();
+	uvs_indices.clear();
+	norm_indices.clear();
+
+#pragma region Creating Skybox
+	LoadModel::LoadObj("SkyBox.obj", verts, uvs, norms,
+		vert_indices, uvs_indices, norm_indices);
+
+	VERTEX* sky_Box = new VERTEX[verts.size()];
+	for (unsigned int i = 0; i < verts.size(); i++)
+	{
+		sky_Box[i].XYZW = verts[i];
+		sky_Box[i].UV = uvs[i];
+		sky_Box[i].normals = norms[i];
+	}
+
+	unsigned int* SkyBoxIndices = new unsigned int[vert_indices.size()];
+	for (unsigned int i = 0; i < vert_indices.size(); i++)
+	{
+		SkyBoxIndices[i] = vert_indices[i];
+	}
+
+#pragma region VertexBuffer for Skybox
+	D3D11_BUFFER_DESC Sky_BoxbufferDesc;
+	ZeroMemory(&Sky_BoxbufferDesc, sizeof(Sky_BoxbufferDesc));
+	Sky_BoxbufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	Sky_BoxbufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	Sky_BoxbufferDesc.ByteWidth = sizeof(VERTEX) * verts.size();
+
+	D3D11_SUBRESOURCE_DATA sub_data_Sky_Box;
+	ZeroMemory(&sub_data_Sky_Box, sizeof(sub_data_Sky_Box));
+	sub_data_Sky_Box.pSysMem = sky_Box;
+	g_pd3dDevice->CreateBuffer(&Sky_BoxbufferDesc, &sub_data_Sky_Box, &VertexBufferSkyBox);
+#pragma endregion
+
+#pragma region IndexBuffer for SkyBox
+	D3D11_BUFFER_DESC indexBuffDesc_SkyBox;
+	ZeroMemory(&indexBuffDesc_SkyBox, sizeof(indexBuffDesc_SkyBox));
+	indexBuffDesc_SkyBox.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBuffDesc_SkyBox.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBuffDesc_SkyBox.ByteWidth = sizeof(unsigned int) * vert_indices.size();
+
+	D3D11_SUBRESOURCE_DATA indexData_SkyBox;
+	ZeroMemory(&indexData_SkyBox, sizeof(indexData_SkyBox));
+	indexData_SkyBox.pSysMem = SkyBoxIndices;
+	g_pd3dDevice->CreateBuffer(&indexBuffDesc_SkyBox, &indexData_SkyBox, &IndexBufferSkyBox);
+#pragma endregion
+
+	SkyBoxIndexCount = vert_indices.size();
+	delete[] SkyBoxIndices;
+
+#pragma endregion
+
+	verts.clear();
+	uvs.clear();
+	norms.clear();
+	vert_indices.clear();
+	uvs_indices.clear();
+	norm_indices.clear();
 
 
 //Creating Buffers
@@ -208,34 +327,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	g_pd3dDevice->CreateBuffer(&indexBuffDesc, &indexData, &IndexBufferStar);
 #pragma endregion
 
-#pragma region VertexBuffer for Floor
-	D3D11_BUFFER_DESC PlanebufferDesc;
-	ZeroMemory(&PlanebufferDesc, sizeof(PlanebufferDesc));
-	PlanebufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	PlanebufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	PlanebufferDesc.ByteWidth = sizeof(SIMPLE_VERTEX) * verts.size();
-
-	D3D11_SUBRESOURCE_DATA sub_data_plane;
-	ZeroMemory(&sub_data_plane, sizeof(sub_data_plane));
-	sub_data_plane.pSysMem = plane;
-	g_pd3dDevice->CreateBuffer(&PlanebufferDesc, &sub_data_plane, &VertexBufferPlane);
-#pragma endregion
-
-#pragma region IndexBuffer for Floor
-	D3D11_BUFFER_DESC indexBuffDesc_Plane;
-	ZeroMemory(&indexBuffDesc_Plane, sizeof(indexBuffDesc_Plane));
-	indexBuffDesc_Plane.Usage = D3D11_USAGE_IMMUTABLE;
-	indexBuffDesc_Plane.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBuffDesc_Plane.ByteWidth = sizeof(unsigned int) * vert_indices.size();
-
-	D3D11_SUBRESOURCE_DATA indexData_Plane;
-	ZeroMemory(&indexData_Plane, sizeof(indexData_Plane));
-	indexData_Plane.pSysMem = planeindices;
-	g_pd3dDevice->CreateBuffer(&indexBuffDesc_Plane, &indexData_Plane, &IndexBufferPlane);
-
-	delete[] planeindices;
-#pragma endregion
-
 #pragma region ShaderData
 	g_pd3dDevice->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &DirectVertShader[0]);
 	g_pd3dDevice->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &DirectPixShader[0]);
@@ -244,7 +335,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	D3D11_INPUT_ELEMENT_DESC LayoutComplex[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA },
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA },
 		{ "UV", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMALS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
@@ -260,7 +351,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 #pragma endregion
 
-#pragma region Costant Buffers
+#pragma region constant Buffers
 
 	D3D11_BUFFER_DESC BufferDesc2;
 	ZeroMemory(&BufferDesc2, sizeof(BufferDesc2));
@@ -268,7 +359,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	BufferDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	BufferDesc2.ByteWidth = sizeof(SEND_TO_VRAM_WORLD);
 	BufferDesc2.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	g_pd3dDevice->CreateBuffer(&BufferDesc2, NULL, &CostantBuffer[0]);
+	g_pd3dDevice->CreateBuffer(&BufferDesc2, NULL, &constantBuffer[0]);
 
 	D3D11_BUFFER_DESC BufferDesc5;
 	ZeroMemory(&BufferDesc5, sizeof(BufferDesc5));
@@ -276,7 +367,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	BufferDesc5.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	BufferDesc5.ByteWidth = sizeof(TRANSLATOR);
 	BufferDesc5.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	g_pd3dDevice->CreateBuffer(&BufferDesc5, NULL, &CostantBuffer[1]);
+	g_pd3dDevice->CreateBuffer(&BufferDesc5, NULL, &constantBuffer[1]);
 
 	D3D11_BUFFER_DESC BufferDesc3;
 	ZeroMemory(&BufferDesc3, sizeof(BufferDesc3));
@@ -284,7 +375,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	BufferDesc3.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	BufferDesc3.ByteWidth = sizeof(SEND_TO_VRAM_PIXEL);
 	BufferDesc3.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	g_pd3dDevice->CreateBuffer(&BufferDesc3, NULL, &CostantPixelBuffer);
+	g_pd3dDevice->CreateBuffer(&BufferDesc3, NULL, &constantPixelBuffer);
 #pragma endregion
 
 #pragma region Depth Buffer
@@ -310,6 +401,63 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	stencil.Texture2D.MipSlice = 0;
 	g_pd3dDevice->CreateDepthStencilView(g_TexBuffer, &stencil, &g_StencilView);
 #pragma endregion
+
+#pragma region Default RasterState
+	D3D11_RASTERIZER_DESC rasterDesc;
+	ZeroMemory(&rasterDesc, sizeof(rasterDesc));
+	rasterDesc.AntialiasedLineEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.SlopeScaledDepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.MultisampleEnable = false;
+
+	g_pd3dDevice->CreateRasterizerState(&rasterDesc, &DefaultRasterState);
+#pragma endregion
+
+#pragma region SkyBox RasterState
+	rasterDesc.CullMode = D3D11_CULL_NONE;
+	g_pd3dDevice->CreateRasterizerState(&rasterDesc, &SkyBoxRasterState);
+#pragma endregion
+
+#pragma region BlendState
+	D3D11_BLEND_DESC BlendDecs;
+	BlendDecs.AlphaToCoverageEnable = true;
+	BlendDecs.IndependentBlendEnable = false;
+	BlendDecs.RenderTarget[0].BlendEnable = true;
+	BlendDecs.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	BlendDecs.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	BlendDecs.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	BlendDecs.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	BlendDecs.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	BlendDecs.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	BlendDecs.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	g_pd3dDevice->CreateBlendState(&BlendDecs, &BlendState);
+
+#pragma endregion
+
+#pragma region Textures
+
+	CreateDDSTextureFromFile(g_pd3dDevice, L"SkyBox.dds", NULL, &SkyBoxShaderView);
+	CreateDDSTextureFromFile(g_pd3dDevice, L"brickwall.dds", NULL, &FloorShaderView);
+
+#pragma endregion
+
+#pragma region Sampler
+
+	D3D11_SAMPLER_DESC Sample = {};
+	Sample.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	Sample.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	Sample.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	
+	g_pd3dDevice->CreateSamplerState(&Sample, &sampleTexture);
+
+#pragma endregion
+
 
 	TimeWizard.Restart();
 }
@@ -410,7 +558,14 @@ bool DEMO_APP::Run()
 	float temp[4] = { 0.0f, 0.1f, 0.3f, 1.0f };
 	g_pd3dDeviceContext->ClearRenderTargetView(g_pRenderTargetView, temp);
 	g_pd3dDeviceContext->ClearDepthStencilView(g_StencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-	
+	g_pd3dDeviceContext->RSSetState(DefaultRasterState);
+
+	float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	g_pd3dDeviceContext->OMSetBlendState(BlendState, NULL, 0xFFFFFFFF);
+
+	g_pd3dDeviceContext->PSSetShaderResources(0, 1, &SkyBoxShaderView);
+	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &FloorShaderView);
+	VRAMPixelShader.whichTexture = 0;
 #pragma region ControlCamera
 
 	XMMATRIX T;
@@ -497,25 +652,25 @@ bool DEMO_APP::Run()
 #pragma region Updating Video Buffers
 	//Sending NEW worldMARIX, viewMatrix, projectionMATRIX to videocard
 	D3D11_MAPPED_SUBRESOURCE m_mapSource;
-	g_pd3dDeviceContext->Map(CostantBuffer[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource);
+	g_pd3dDeviceContext->Map(constantBuffer[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource);
 	memcpy_s(m_mapSource.pData, sizeof(SEND_TO_VRAM_WORLD), &WorldShader, sizeof(SEND_TO_VRAM_WORLD));
-	g_pd3dDeviceContext->Unmap(CostantBuffer[0], 0);
+	g_pd3dDeviceContext->Unmap(constantBuffer[0], 0);
 
 	//Sending NEW rotation, scale, translation to videocard
 	D3D11_MAPPED_SUBRESOURCE m_mapSource2;
-	g_pd3dDeviceContext->Map(CostantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
-	g_pd3dDeviceContext->Unmap(CostantBuffer[1], 0);
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
 
-	//Sending NEW UVs to videocard
+	//Sending NEW Texture details to videocard
 	D3D11_MAPPED_SUBRESOURCE m_mapSource1;
-	g_pd3dDeviceContext->Map(CostantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
+	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
 	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
-	g_pd3dDeviceContext->Unmap(CostantPixelBuffer, 0);
+	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);
 
-	g_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &CostantBuffer[0]);
-	g_pd3dDeviceContext->VSSetConstantBuffers(1, 1, &CostantBuffer[1]);
-	g_pd3dDeviceContext->PSSetConstantBuffers(0, 1, &CostantPixelBuffer);
+	g_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &constantBuffer[0]);
+	g_pd3dDeviceContext->VSSetConstantBuffers(1, 1, &constantBuffer[1]);
+	g_pd3dDeviceContext->PSSetConstantBuffers(0, 1, &constantPixelBuffer);
 #pragma endregion
 
 #pragma region Drawing Star
@@ -534,10 +689,47 @@ bool DEMO_APP::Run()
 #pragma endregion
 
 #pragma region Drawing Floor
+
+	stride = sizeof(VERTEX);
+	VRAMPixelShader.whichTexture = 1;
+
+	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
+	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
+	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);
+
+	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
+	g_pd3dDeviceContext->VSSetShader(DirectVertShader[0], NULL, NULL);
+	g_pd3dDeviceContext->PSSetShader(DirectPixShader[0], NULL, NULL);
+
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferPlane, &stride, &offsets);
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferPlane, DXGI_FORMAT_R32_UINT, 0);
 
+	g_pd3dDeviceContext->RSSetState(SkyBoxRasterState);
 	g_pd3dDeviceContext->DrawIndexed(6, 0, 0);
+#pragma endregion
+
+#pragma region Drawing Skybox
+	stride = sizeof(VERTEX);
+	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferSkyBox, &stride, &offsets);
+
+	VRAMPixelShader.whichTexture = 0;
+
+	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
+	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
+	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);
+
+	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
+	g_pd3dDeviceContext->VSSetShader(DirectVertShader[0], NULL, NULL);
+	g_pd3dDeviceContext->PSSetShader(DirectPixShader[0], NULL, NULL);
+
+	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferSkyBox, DXGI_FORMAT_R32_UINT, 0);
+
+	//g_pd3dDeviceContext->PSSetSamplers(0, 1, &sampleTexture);
+	
+	g_pd3dDeviceContext->RSSetState(SkyBoxRasterState);
+
+	g_pd3dDeviceContext->DrawIndexed(SkyBoxIndexCount, 0, 0);
+
 #pragma endregion
 
 	g_pSwapChain->Present(0, 0);
@@ -559,6 +751,8 @@ bool DEMO_APP::ShutDown()
 
 void DEMO_APP::Clean3d()
 {
+	g_pSwapChain->SetFullscreenState(FALSE, NULL);
+
 	g_pd3dDeviceContext->Release();
 	g_pSwapChain->Release();
 	g_pRenderTargetView->Release();
@@ -570,15 +764,29 @@ void DEMO_APP::Clean3d()
 	IndexBufferStar->Release();
 	VertexBufferPlane->Release();
 	IndexBufferPlane->Release();
+	VertexBufferSkyBox->Release();
+	IndexBufferSkyBox->Release();
+	
+
 	DirectVertShader[0]->Release();
 	DirectPixShader[0]->Release();
 	DirectInputLay[0]->Release();
-	CostantBuffer[0]->Release();
+	constantBuffer[0]->Release();
 	DirectVertShader[1]->Release();
 	DirectPixShader[1]->Release();
 	DirectInputLay[1]->Release();
-	CostantBuffer[1]->Release();
-	CostantPixelBuffer->Release();
+	constantBuffer[1]->Release();
+	constantPixelBuffer->Release();
+
+
+	DefaultRasterState->Release();
+	SkyBoxRasterState->Release();
+
+	sampleTexture->Release();
+	SkyBoxShaderView->Release();
+	FloorShaderView->Release();
+
+	BlendState->Release();
 }
 
 //************************************************************
