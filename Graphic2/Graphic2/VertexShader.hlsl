@@ -34,10 +34,13 @@ OUTPUT_VERTEX main(INPUT_VERTEX fromVertexBuffer)
 	OUTPUT_VERTEX sendToRasterizer = (OUTPUT_VERTEX)0;
 	
 	sendToRasterizer.projectedCoordinate.xyz = fromVertexBuffer.pos.xyz;
-	sendToRasterizer.projectedCoordinate.w = 1;
+	sendToRasterizer.projectedCoordinate.w = Scale;
+	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Rotation);
+	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Translate);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, worldMatrix);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, viewMatrix);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, projectionMatrix);
+
 	sendToRasterizer.colorOut = fromVertexBuffer.color;
 	return sendToRasterizer;
 }

@@ -18,8 +18,8 @@
 
 
 
-#define BACKBUFFER_WIDTH	500
-#define BACKBUFFER_HEIGHT	500
+#define BACKBUFFER_WIDTH	1280.0f
+#define BACKBUFFER_HEIGHT	720.0f
 
 ID3D11DeviceContext*	g_pd3dDeviceContext;
 IDXGISwapChain*			g_pSwapChain;
@@ -29,8 +29,9 @@ ID3D11DepthStencilView* g_StencilView;
 ID3D11Texture2D*		g_TexBuffer;
 D3D11_VIEWPORT			g_DirectView;
 bool g_ScreenChanged;
+bool g_Minimized;
 XMMATRIX g_newProjection;
-
+LPARAM g_lParam;
 
 //************************************************************
 //************ SIMPLE WINDOWS APP CLASS **********************
@@ -50,7 +51,8 @@ class DEMO_APP
 	ID3D11Buffer*					IndexBufferPlane;
 	ID3D11Buffer*					VertexBufferSkyBox;
 	ID3D11Buffer*					IndexBufferSkyBox;
-
+	ID3D11Buffer*					VertexBufferSword;
+	ID3D11Buffer*					IndexBufferSword;
 
 	//Shaders
 	ID3D11VertexShader*				DirectVertShader[2];
@@ -64,6 +66,7 @@ class DEMO_APP
 	//Textures & Samples
 	ID3D11ShaderResourceView*       SkyBoxShaderView;
 	ID3D11ShaderResourceView*		FloorShaderView;
+	ID3D11ShaderResourceView*		SwordShaderView;
 	ID3D11SamplerState*				sampleTexture;
 
 	//RasterStates
@@ -76,6 +79,7 @@ class DEMO_APP
 	unsigned int SkyBoxIndexCount;
 	unsigned int PlaneIndexCount;
 	unsigned int StarIndexCount;
+	unsigned int SwordIndexCount;
 
 	void init3D(HWND hWnd);
 	void Clean3d();
@@ -138,13 +142,15 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	WorldShader.projectView = XMMatrixIdentity();
 	g_newProjection = XMMatrixIdentity();
 	m_viewMatrix = XMMatrixIdentity();
-	m_viewMatrix = XMMatrixTranslation(0.0f, 2.0f, -3.0f);
+	m_viewMatrix = XMMatrixTranslation(0.0f, 2.0f, -5.0f);
 	WorldShader.projectView = XMMatrixPerspectiveFovLH(XMConvertToRadians(FIELDOFVIEW), ASPECTRATIO, ZNEAR, ZFAR);
 
 	translating.Translate = XMMatrixIdentity();
 	translating.Rotation = XMMatrixIdentity();
 	translating.Scale = 1;
 	g_ScreenChanged = false;
+	g_Minimized = false;
+
 #pragma endregion
 
 #pragma region Creating Star Shape
@@ -289,6 +295,74 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	SkyBoxIndexCount = vert_indices.size();
 	delete[] SkyBoxIndices;
+	delete[] sky_Box;
+#pragma endregion
+
+	verts.clear();
+	uvs.clear();
+	norms.clear();
+	vert_indices.clear();
+	uvs_indices.clear();
+	norm_indices.clear();
+
+
+#pragma region Creating DeadpoolSword
+	LoadModel::LoadObj("deadpool sword 1.obj", verts, uvs, norms, 
+		vert_indices, uvs_indices, norm_indices);
+
+	VERTEX* sword = new VERTEX[vert_indices.size()];
+
+	//for (unsigned int i = 0; i < verts.size(); i++)
+	//{
+	//	sword[i].XYZW = verts[i];
+	//	sword[i].RGBA = XMFLOAT4(0.0f, 0.2f, 0.7f, 1.0f);
+	//}
+
+	unsigned int* SwordIndices = new unsigned int[vert_indices.size()];
+	for (unsigned int i = 0; i < vert_indices.size(); i++)
+	{
+		sword[i].XYZW = verts[vert_indices[i]];
+		sword[i].UV = uvs[uvs_indices[i]];
+		sword[i].normals = norms[norm_indices[i]];
+		SwordIndices[i] = i;
+	}
+
+	//unsigned int* SwordIndices = new unsigned int[vert_indices.size()];
+	//for (unsigned int i = 0; i < vert_indices.size(); i++)
+	//{
+	//	SwordIndices[i] = vert_indices[i];
+	//}
+
+
+#pragma region VertexBuffer Sword
+	D3D11_BUFFER_DESC SwordbufferDesc;
+	ZeroMemory(&SwordbufferDesc, sizeof(SwordbufferDesc));
+	SwordbufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	SwordbufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	SwordbufferDesc.ByteWidth = sizeof(VERTEX) * vert_indices.size();
+
+	D3D11_SUBRESOURCE_DATA sub_data_Sword;
+	ZeroMemory(&sub_data_Sword, sizeof(sub_data_Sword));
+	sub_data_Sword.pSysMem = sword;
+	g_pd3dDevice->CreateBuffer(&SwordbufferDesc, &sub_data_Sword, &VertexBufferSword);
+#pragma endregion
+
+#pragma region IndexBuffer Sword
+	D3D11_BUFFER_DESC indexBuffDesc_Sword;
+	ZeroMemory(&indexBuffDesc_Sword, sizeof(indexBuffDesc_Sword));
+	indexBuffDesc_Sword.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBuffDesc_Sword.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBuffDesc_Sword.ByteWidth = sizeof(unsigned int) * vert_indices.size();
+
+	D3D11_SUBRESOURCE_DATA indexData_Sword;
+	ZeroMemory(&indexData_Sword, sizeof(indexData_Sword));
+	indexData_Sword.pSysMem = SwordIndices;
+	g_pd3dDevice->CreateBuffer(&indexBuffDesc_Sword, &indexData_Sword, &IndexBufferSword);
+#pragma endregion
+
+	SwordIndexCount = vert_indices.size();
+	delete[] sword;
+	delete[] SwordIndices;
 
 #pragma endregion
 
@@ -300,7 +374,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	norm_indices.clear();
 
 
-//Creating Buffers
 #pragma region VertexBuffer for Star
 	D3D11_BUFFER_DESC StarbufferDesc;
 	ZeroMemory(&StarbufferDesc, sizeof(StarbufferDesc));
@@ -444,6 +517,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	CreateDDSTextureFromFile(g_pd3dDevice, L"SkyBox.dds", NULL, &SkyBoxShaderView);
 	CreateDDSTextureFromFile(g_pd3dDevice, L"brickwall.dds", NULL, &FloorShaderView);
+	CreateDDSTextureFromFile(g_pd3dDevice, L"DeadPoolSword.dds", NULL, &SwordShaderView);
 
 #pragma endregion
 
@@ -543,15 +617,15 @@ bool DEMO_APP::Run()
 {
 	TimeWizard.Signal();
 
-	float timer = (float)TimeWizard.Delta();
-	//WorldShader.worldMatrix = XMMatrixMultiply(XMMatrixRotationY(timer), WorldShader.worldMatrix);
+
+	float timer = (float)TimeWizard.TotalTime();
 
 	if (g_ScreenChanged)
 	{
 		WorldShader.projectView = g_newProjection;
 		g_ScreenChanged = false;
 	}
-
+	
 	g_pd3dDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_StencilView);
 	g_pd3dDeviceContext->RSSetViewports(1, &g_DirectView);
 
@@ -566,6 +640,7 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->PSSetShaderResources(0, 1, &SkyBoxShaderView);
 	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &FloorShaderView);
 	VRAMPixelShader.whichTexture = 0;
+
 #pragma region ControlCamera
 
 	XMMATRIX T;
@@ -673,9 +748,63 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->PSSetConstantBuffers(0, 1, &constantPixelBuffer);
 #pragma endregion
 
-#pragma region Drawing Star
-	unsigned int stride = sizeof(SIMPLE_VERTEX);	
+	unsigned int stride = 0;
 	unsigned int offsets = 0;
+
+#pragma region Drawing Skybox
+
+	translating.Translate.r[3] = m_viewMatrix.r[3];
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+	stride = sizeof(VERTEX);
+	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferSkyBox, &stride, &offsets);
+
+	VRAMPixelShader.whichTexture = 0;
+
+	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
+	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
+	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);
+
+	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
+	g_pd3dDeviceContext->VSSetShader(DirectVertShader[0], NULL, NULL);
+	g_pd3dDeviceContext->PSSetShader(DirectPixShader[0], NULL, NULL);
+
+	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferSkyBox, DXGI_FORMAT_R32_UINT, 0);
+	g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	g_pd3dDeviceContext->PSSetSamplers(0, 1, &sampleTexture);
+
+	g_pd3dDeviceContext->RSSetState(SkyBoxRasterState);
+
+	g_pd3dDeviceContext->DrawIndexed(SkyBoxIndexCount, 0, 0);
+
+#pragma endregion
+
+	translating.Translate = XMMatrixTranslation(0, 0, 0);
+	translating.Scale = 1.0f;
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+	g_pd3dDeviceContext->ClearDepthStencilView(g_StencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+#pragma region Drawing Star
+
+	translating.Translate = XMMatrixTranslation(-2, 0, 0);
+	WorldShader.worldMatrix = XMMatrixMultiply(XMMatrixRotationY(timer), WorldShader.worldMatrix);
+	translating.Rotation = XMMatrixMultiply(XMMatrixRotationY(timer*5), translating.Rotation);
+
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+	g_pd3dDeviceContext->Map(constantBuffer[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource);
+	memcpy_s(m_mapSource.pData, sizeof(SEND_TO_VRAM_WORLD), &WorldShader, sizeof(SEND_TO_VRAM_WORLD));
+	g_pd3dDeviceContext->Unmap(constantBuffer[0], 0);
+
+	stride = sizeof(SIMPLE_VERTEX);	
+	offsets = 0;
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferStar, &stride, &offsets);
 
 	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[1]);
@@ -686,10 +815,58 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferStar, DXGI_FORMAT_R32_UINT, 0);
 
 	g_pd3dDeviceContext->DrawIndexed(60, 0, 0);
+
+	WorldShader.worldMatrix = XMMatrixIdentity();
+	translating.Rotation = XMMatrixIdentity();
+	translating.Translate = XMMatrixIdentity();
+	
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+	
+	g_pd3dDeviceContext->Map(constantBuffer[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource);
+	memcpy_s(m_mapSource.pData, sizeof(SEND_TO_VRAM_WORLD), &WorldShader, sizeof(SEND_TO_VRAM_WORLD));
+	g_pd3dDeviceContext->Unmap(constantBuffer[0], 0);
+
 #pragma endregion
+
+#pragma region DrawingSword
+
+	translating.Translate = XMMatrixTranslation(-3, 3, 0);
+	translating.Scale = 20.0f;
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+	stride = sizeof(VERTEX);
+	VRAMPixelShader.whichTexture = 1;
+
+	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
+	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
+	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);
+
+	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
+	g_pd3dDeviceContext->VSSetShader(DirectVertShader[0], NULL, NULL);
+	g_pd3dDeviceContext->PSSetShader(DirectPixShader[0], NULL, NULL);
+	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &SwordShaderView);
+	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferSword, &stride, &offsets);
+	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferSword, DXGI_FORMAT_R32_UINT, 0);
+
+	g_pd3dDeviceContext->DrawIndexed(SwordIndexCount, 0, 0);
+
+	
+	
+#pragma endregion
+
+	translating.Translate = XMMatrixTranslation(0, 0, 0);
+	translating.Scale = 1.0f;
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
 
 #pragma region Drawing Floor
 
+	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &FloorShaderView);
 	stride = sizeof(VERTEX);
 	VRAMPixelShader.whichTexture = 1;
 
@@ -708,29 +885,6 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->DrawIndexed(6, 0, 0);
 #pragma endregion
 
-#pragma region Drawing Skybox
-	stride = sizeof(VERTEX);
-	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferSkyBox, &stride, &offsets);
-
-	VRAMPixelShader.whichTexture = 0;
-
-	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
-	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
-	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);
-
-	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
-	g_pd3dDeviceContext->VSSetShader(DirectVertShader[0], NULL, NULL);
-	g_pd3dDeviceContext->PSSetShader(DirectPixShader[0], NULL, NULL);
-
-	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferSkyBox, DXGI_FORMAT_R32_UINT, 0);
-
-	//g_pd3dDeviceContext->PSSetSamplers(0, 1, &sampleTexture);
-	
-	g_pd3dDeviceContext->RSSetState(SkyBoxRasterState);
-
-	g_pd3dDeviceContext->DrawIndexed(SkyBoxIndexCount, 0, 0);
-
-#pragma endregion
 
 	g_pSwapChain->Present(0, 0);
 
@@ -766,7 +920,8 @@ void DEMO_APP::Clean3d()
 	IndexBufferPlane->Release();
 	VertexBufferSkyBox->Release();
 	IndexBufferSkyBox->Release();
-	
+	VertexBufferSword->Release();
+	IndexBufferSword->Release();
 
 	DirectVertShader[0]->Release();
 	DirectPixShader[0]->Release();
@@ -785,6 +940,7 @@ void DEMO_APP::Clean3d()
 	sampleTexture->Release();
 	SkyBoxShaderView->Release();
 	FloorShaderView->Release();
+	SwordShaderView->Release();
 
 	BlendState->Release();
 }
@@ -803,7 +959,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE, LPTSTR, int )
 	srand(unsigned int(time(0)));
 	DEMO_APP myApp(hInstance,(WNDPROC)WndProc);	
     MSG msg; ZeroMemory( &msg, sizeof( msg ) );
-    while ( msg.message != WM_QUIT && myApp.Run() )
+    while ( msg.message != WM_QUIT && myApp.Run())
     {	
 	    if ( PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) )
         { 
@@ -820,10 +976,14 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 {
     if(GetAsyncKeyState(VK_ESCAPE))
 		message = WM_DESTROY;
+
     switch ( message )
     {
         case ( WM_DESTROY ): { PostQuitMessage( 0 ); }
         break;
+		case (WM_CREATE):
+			g_lParam = lParam;
+			break;
 		case (WM_SIZE) :
 		{
 						   if (g_pSwapChain)
@@ -886,8 +1046,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 							   g_DirectView.Width = nWidth;
 							   
 							   g_ScreenChanged = true;
-							   //g_newProjection = Projection((nHeight / nWidth), FIELDOFVIEW, ZNEAR, ZFAR);
-							   g_newProjection = XMMatrixPerspectiveFovLH(XMConvertToRadians(FIELDOFVIEW), (nWidth/ nHeight), ZNEAR, ZFAR);
+							   g_newProjection = XMMatrixPerspectiveFovLH(XMConvertToRadians(FIELDOFVIEW), (nWidth / nHeight), ZNEAR, ZFAR);
+
 						   }
 		};
     }

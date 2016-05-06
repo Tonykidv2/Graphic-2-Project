@@ -13,9 +13,10 @@
 
 using namespace DirectX;
 using namespace std;
+#include "LightHelper.h"
 
-#define RASTER_WIDTH 500.0f
-#define RASTER_HEIGHT 500.0f
+#define RASTER_WIDTH 1280.0f
+#define RASTER_HEIGHT 720.0f
 #define NUM_PIXEL UINT(RASTER_WIDTH * RASTER_HEIGHT)
 #define M_PI 3.14159
 

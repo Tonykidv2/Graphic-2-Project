@@ -30,6 +30,7 @@ cbuffer TRANSLATOR : register(b1)
 	float4x4 Translate;
 	float Scale;
 	float3 padding;
+	 
 };
 
 OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
@@ -37,13 +38,14 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 	OUTPUT_VERTEX sendToRasterizer = (OUTPUT_VERTEX)0;
 	
 	sendToRasterizer.projectedCoordinate.xyz = fromVertexBuffer.pos.xyz;
-	sendToRasterizer.projectedCoordinate.w = 1;
+	sendToRasterizer.projectedCoordinate.w = Scale;
+	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Rotation);
+	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Translate);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, worldMatrix);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, viewMatrix);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, projectionMatrix);
-	//sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Translate);
-
-	sendToRasterizer.uvOUT = fromVertexBuffer.uv ;
+	
+	sendToRasterizer.uvOUT = fromVertexBuffer.uv;
 	sendToRasterizer.uvOUT.z = 0;
 	sendToRasterizer.normalOUT = fromVertexBuffer.normal;
 
