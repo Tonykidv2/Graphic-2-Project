@@ -123,7 +123,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	RECT window_size = { 0, 0, BACKBUFFER_WIDTH, BACKBUFFER_HEIGHT };
 	AdjustWindowRect(&window_size, WS_OVERLAPPEDWINDOW, false);
 
-	window = CreateWindow(	L"DirectXApplication", L"GRAPHIC 2 PROJECT",	WS_OVERLAPPEDWINDOW , 
+	window = CreateWindow(	L"DirectXApplication", L"GRAPHIC 2 PROJECT", WS_OVERLAPPEDWINDOW , 
 							CW_USEDEFAULT, CW_USEDEFAULT, window_size.right-window_size.left, window_size.bottom-window_size.top,					
 							NULL, NULL,	application, this );												
 
@@ -307,18 +307,13 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 
 #pragma region Creating DeadpoolSword
+
 	LoadModel::LoadObj("deadpool sword 1.obj", verts, uvs, norms, 
 		vert_indices, uvs_indices, norm_indices);
 
 	VERTEX* sword = new VERTEX[vert_indices.size()];
-
-	//for (unsigned int i = 0; i < verts.size(); i++)
-	//{
-	//	sword[i].XYZW = verts[i];
-	//	sword[i].RGBA = XMFLOAT4(0.0f, 0.2f, 0.7f, 1.0f);
-	//}
-
 	unsigned int* SwordIndices = new unsigned int[vert_indices.size()];
+	
 	for (unsigned int i = 0; i < vert_indices.size(); i++)
 	{
 		sword[i].XYZW = verts[vert_indices[i]];
@@ -326,12 +321,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		sword[i].normals = norms[norm_indices[i]];
 		SwordIndices[i] = i;
 	}
-
-	//unsigned int* SwordIndices = new unsigned int[vert_indices.size()];
-	//for (unsigned int i = 0; i < vert_indices.size(); i++)
-	//{
-	//	SwordIndices[i] = vert_indices[i];
-	//}
 
 
 #pragma region VertexBuffer Sword
@@ -994,6 +983,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 							   g_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
 
+							   DXGI_SWAP_CHAIN_DESC Chaindsc;
+							   g_pSwapChain->GetDesc(&Chaindsc);
+
 							   ID3D11Texture2D* tempBuffer;
 							   g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
 								   (void**)&tempBuffer);
@@ -1005,8 +997,11 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 							   g_pd3dDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, NULL);
 							  
-							   float nWidth = LOWORD(lParam);
-							   float nHeight = HIWORD(lParam);
+							   /*float nWidth = LOWORD(lParam);
+							   float nHeight = HIWORD(lParam);*/
+
+							   float nWidth = Chaindsc.BufferDesc.Width;
+							   float nHeight = Chaindsc.BufferDesc.Height;
 
 							   // Set up the viewport.
 							   D3D11_VIEWPORT vp;
