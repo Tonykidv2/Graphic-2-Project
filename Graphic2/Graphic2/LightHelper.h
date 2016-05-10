@@ -34,7 +34,7 @@ struct PointLight
 	XMFLOAT4 Specular;
 
 	//Packed into a 4D vector: (position,range)
-	XMFLOAT4 Position;
+	XMFLOAT3 Position;
 	float Range;
 
 	//Packed int a 4D vector: (A0, A1, A2, pad)
@@ -53,7 +53,7 @@ struct SpotLight
 	XMFLOAT4 Specular;
 
 	//Packed into a 4D vector: (position,range)
-	XMFLOAT4 Position;
+	XMFLOAT3 Position;
 	float Range;
 
 	//Packed into a 4D vector: (direction,spot)

@@ -47,8 +47,7 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, projectionMatrix);
 	
 	sendToRasterizer.uvOUT = fromVertexBuffer.uv;
-	//sendToRasterizer.uvOUT.z = 0;
+	sendToRasterizer.uvOUT.z = 0;
 	sendToRasterizer.normalOUT = mul(fromVertexBuffer.normal, (float3x3)projectionMatrix);
-
 	return sendToRasterizer;
 }

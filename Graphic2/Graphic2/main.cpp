@@ -53,6 +53,9 @@ class DEMO_APP
 	ID3D11Buffer*					IndexBufferSkyBox;
 	ID3D11Buffer*					VertexBufferSword;
 	ID3D11Buffer*					IndexBufferSword;
+	ID3D11Buffer*					VertexBufferDeadpool;
+	ID3D11Buffer*					IndexBufferDeadpool;
+
 
 	//Shaders
 	ID3D11VertexShader*				DirectVertShader[2];
@@ -68,6 +71,7 @@ class DEMO_APP
 	ID3D11ShaderResourceView*       SkyBoxShaderView;
 	ID3D11ShaderResourceView*		FloorShaderView;
 	ID3D11ShaderResourceView*		SwordShaderView;
+	ID3D11ShaderResourceView*		DeadpoolShaderView;
 	ID3D11SamplerState*				sampleTexture;
 
 	//RasterStates
@@ -81,13 +85,21 @@ class DEMO_APP
 	unsigned int PlaneIndexCount;
 	unsigned int StarIndexCount;
 	unsigned int SwordIndexCount;
+	unsigned int DeadpoolIndexCount;
 
 	void init3D(HWND hWnd);
 	void Clean3d();
 	SEND_TO_VRAM_WORLD WorldShader;
 	SEND_TO_VRAM_PIXEL VRAMPixelShader;
 	TRANSLATOR translating;
+#if USINGOLDLIGHTCODE
 	LightSources Lights;
+#endif
+
+#if !USINGOLDLIGHTCODE
+	LightSources Lights[4];
+#endif
+
 	XMMATRIX m_viewMatrix;
 	POINT prevPoint;
 	POINT newPoint;
@@ -173,6 +185,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 			Star[i].XYZW = XMFLOAT4(sin(((i * 36) * 3.14159f) / 180), 
 				cos(((i * 36) * 3.14159f) / 180) + 1, 0.0f , 1);
 			Star[i].RGBA = XMFLOAT4(1, 0, 0, 1);
+
 		}
 		else
 		{
@@ -180,6 +193,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 				cos(((i * 36) * 3.14159f) / 180) * .50f + 1, 0.0f, 1);
 			Star[i].RGBA = XMFLOAT4(1, 0, 0, 1);
 		}
+
+		Star[i].Norm = XMFLOAT3(1.0f, 1.0f, 1.0f);
 
 		toggle = !toggle;
 	}
@@ -198,18 +213,15 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	LoadModel::LoadObj("PlaneSuper.obj", verts, uvs, norms,
 		vert_indices, uvs_indices, norm_indices);
 	
-	VERTEX* plane = new VERTEX[verts.size()];
-	for (unsigned int i = 0; i < verts.size(); i++)
-	{
-		plane[i].XYZW = verts[i];
-		plane[i].UV = uvs[i];
-		//plane[i].normals = norms[i];
-	}
-	plane[0].normals = norms[0];
+	VERTEX* plane = new VERTEX[vert_indices.size()];
 	unsigned int *planeindices = new unsigned int[vert_indices.size()];
+
 	for (unsigned int i = 0; i < vert_indices.size(); i++)
 	{
-		planeindices[i] = vert_indices[i];
+		plane[i].XYZW		= verts[vert_indices[i]];
+		plane[i].UV			= uvs[uvs_indices[i]];
+		plane[i].normals	= norms[norm_indices[i]];
+		planeindices[i]		= i;
 	}
 
 #pragma region VertexBuffer for Floor
@@ -217,7 +229,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&PlanebufferDesc, sizeof(PlanebufferDesc));
 	PlanebufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
 	PlanebufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	PlanebufferDesc.ByteWidth = sizeof(VERTEX) * verts.size();
+	PlanebufferDesc.ByteWidth = sizeof(VERTEX) * vert_indices.size();
 
 	D3D11_SUBRESOURCE_DATA sub_data_plane;
 	ZeroMemory(&sub_data_plane, sizeof(sub_data_plane));
@@ -241,6 +253,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	PlaneIndexCount = vert_indices.size();
 	delete[] planeindices;
+	delete[] plane;
 
 #pragma endregion
 
@@ -255,18 +268,15 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	LoadModel::LoadObj("SkyBox.obj", verts, uvs, norms,
 		vert_indices, uvs_indices, norm_indices);
 
-	VERTEX* sky_Box = new VERTEX[verts.size()];
-	for (unsigned int i = 0; i < verts.size(); i++)
-	{
-		sky_Box[i].XYZW = verts[i];
-		sky_Box[i].UV = uvs[i];
-		sky_Box[i].normals = norms[i];
-	}
-
+	VERTEX* sky_Box = new VERTEX[vert_indices.size()];
 	unsigned int* SkyBoxIndices = new unsigned int[vert_indices.size()];
 	for (unsigned int i = 0; i < vert_indices.size(); i++)
 	{
-		SkyBoxIndices[i] = vert_indices[i];
+		sky_Box[i].XYZW		= verts[vert_indices[i]];
+		sky_Box[i].UV		= uvs[uvs_indices[i]];
+		sky_Box[i].normals	= norms[norm_indices[i]];
+		SkyBoxIndices[i]	= i;
+
 	}
 
 #pragma region VertexBuffer for Skybox
@@ -274,7 +284,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&Sky_BoxbufferDesc, sizeof(Sky_BoxbufferDesc));
 	Sky_BoxbufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
 	Sky_BoxbufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	Sky_BoxbufferDesc.ByteWidth = sizeof(VERTEX) * verts.size();
+	Sky_BoxbufferDesc.ByteWidth = sizeof(VERTEX) * vert_indices.size();
 
 	D3D11_SUBRESOURCE_DATA sub_data_Sky_Box;
 	ZeroMemory(&sub_data_Sky_Box, sizeof(sub_data_Sky_Box));
@@ -298,6 +308,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	SkyBoxIndexCount = vert_indices.size();
 	delete[] SkyBoxIndices;
 	delete[] sky_Box;
+
 #pragma endregion
 
 	verts.clear();
@@ -318,10 +329,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	
 	for (unsigned int i = 0; i < vert_indices.size(); i++)
 	{
-		sword[i].XYZW = verts[vert_indices[i]];
-		sword[i].UV = uvs[uvs_indices[i]];
-		sword[i].normals = norms[norm_indices[i]];
-		SwordIndices[i] = i;
+		sword[i].XYZW		= verts[vert_indices[i]];
+		sword[i].UV			= uvs[uvs_indices[i]];
+		sword[i].normals	= norms[norm_indices[i]];
+		SwordIndices[i]		= i;
 	}
 
 
@@ -364,6 +375,61 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	uvs_indices.clear();
 	norm_indices.clear();
 
+#pragma region Creating Deadpool
+
+	LoadModel::LoadObj("deadpool.obj", verts, uvs, norms,
+		vert_indices, uvs_indices, norm_indices);
+
+	VERTEX* Deadpool = new VERTEX[vert_indices.size()];
+	unsigned int* DeadpoolIndices = new unsigned int[vert_indices.size()];
+
+	for (unsigned int i = 0; i < vert_indices.size(); i++)
+	{
+		Deadpool[i].XYZW	= verts[vert_indices[i]];
+		Deadpool[i].UV		= uvs[uvs_indices[i]];
+		Deadpool[i].normals = norms[norm_indices[i]];
+		DeadpoolIndices[i]	= i;
+	}
+
+
+#pragma region VertexBuffer Deadpool
+	D3D11_BUFFER_DESC DeadpoolbufferDesc;
+	ZeroMemory(&DeadpoolbufferDesc, sizeof(DeadpoolbufferDesc));
+	DeadpoolbufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	DeadpoolbufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	DeadpoolbufferDesc.ByteWidth = sizeof(VERTEX) * vert_indices.size();
+
+	D3D11_SUBRESOURCE_DATA sub_data_Deadpool;
+	ZeroMemory(&sub_data_Deadpool, sizeof(sub_data_Deadpool));
+	sub_data_Deadpool.pSysMem = Deadpool;
+	g_pd3dDevice->CreateBuffer(&DeadpoolbufferDesc, &sub_data_Deadpool, &VertexBufferDeadpool);
+#pragma endregion
+
+#pragma region IndexBuffer Deadpool
+	D3D11_BUFFER_DESC indexBuffDesc_Deadpool;
+	ZeroMemory(&indexBuffDesc_Deadpool, sizeof(indexBuffDesc_Deadpool));
+	indexBuffDesc_Deadpool.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBuffDesc_Deadpool.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBuffDesc_Deadpool.ByteWidth = sizeof(unsigned int) * vert_indices.size();
+
+	D3D11_SUBRESOURCE_DATA indexData_Deadpool;
+	ZeroMemory(&indexData_Deadpool, sizeof(indexData_Deadpool));
+	indexData_Deadpool.pSysMem = DeadpoolIndices;
+	g_pd3dDevice->CreateBuffer(&indexBuffDesc_Deadpool, &indexData_Deadpool, &IndexBufferDeadpool);
+#pragma endregion
+
+	DeadpoolIndexCount = vert_indices.size();
+	delete[] Deadpool;
+	delete[] DeadpoolIndices;
+
+#pragma endregion
+
+	verts.clear();
+	uvs.clear();
+	norms.clear();
+	vert_indices.clear();
+	uvs_indices.clear();
+	norm_indices.clear();
 
 #pragma region VertexBuffer for Star
 	D3D11_BUFFER_DESC StarbufferDesc;
@@ -408,10 +474,11 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMALS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 
 	g_pd3dDevice->CreateInputLayout(LayoutComplex, 3, Trivial_VS, sizeof(Trivial_VS), &DirectInputLay[0]);
-	g_pd3dDevice->CreateInputLayout(LayoutSimple, 2, VertexShader, sizeof(VertexShader), &DirectInputLay[1]);
+	g_pd3dDevice->CreateInputLayout(LayoutSimple, 3, VertexShader, sizeof(VertexShader), &DirectInputLay[1]);
 
 #pragma endregion
 
@@ -517,7 +584,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	CreateDDSTextureFromFile(g_pd3dDevice, L"SkyBox.dds", NULL, &SkyBoxShaderView);
 	CreateDDSTextureFromFile(g_pd3dDevice, L"brickwall.dds", NULL, &FloorShaderView);
 	CreateDDSTextureFromFile(g_pd3dDevice, L"DeadPoolSword.dds", NULL, &SwordShaderView);
-
+	CreateDDSTextureFromFile(g_pd3dDevice, L"DeadPoolTex.dds", NULL, &DeadpoolShaderView);
 #pragma endregion
 
 #pragma region Sampler
@@ -532,32 +599,62 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region Lights INIT
-	//Directional Light				//somewhat blue color
-	Lights.m_DirLight.Ambient	= XMFLOAT4(0.2f, 0.2f, 0.5, 1.0);
-	Lights.m_DirLight.Diffuse	= XMFLOAT4(0.5f, 0.5f, 0.8f, 1.0f);
-	Lights.m_DirLight.Specular	= XMFLOAT4(0.5f, 0.5f, 0.8f, 1.0f);
-	Lights.m_DirLight.Direction = XMFLOAT3(0.57735f, 4, 0.57735f);
 
-	//Point Light will be postioned on the left		//somewhat green
-	Lights.m_pointLight.Ambient		= XMFLOAT4(0.2f, 0.5f, 0.2f, 1.0f);
-	Lights.m_pointLight.Diffuse		= XMFLOAT4(0.6f, 0.9f, 0.6f, 1.0f);
-	Lights.m_pointLight.Specular	= XMFLOAT4(0.6f, 0.9f, 0.6f, 1.0f);
-	Lights.m_pointLight.Att			= XMFLOAT3(0.0f, 1.0f, 0.0f);
-	Lights.m_pointLight.Range		= 10.0f;
-	Lights.m_pointLight.Position	= XMFLOAT4(-4.0f, 4.0f, 0.0f, 1.0f);
+#if USINGOLDLIGHTCODE
 
-	//Spot Light will be positioned on the right	//somewhat red
-	Lights.m_SpotLight.Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	Lights.m_SpotLight.Diffuse = XMFLOAT4(0.8f, 0.2f, 0.2f, 1.0f);
-	Lights.m_SpotLight.Specular = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-	Lights.m_SpotLight.Att = XMFLOAT3(1.0f, 0.0f, 0.0f);
-	Lights.m_SpotLight.Spot = 3.0f;
-	Lights.m_SpotLight.Range = 10.0f;
+		//Directional Light				//somewhat blue color
+		Lights.m_DirLight.Ambient		= XMFLOAT4(0.2f, 0.2f, 0.2f+0.3f, 1.0f);
+		Lights.m_DirLight.Diffuse		= XMFLOAT4(0.5f, 0.5f, 0.5f+0.3f, 1.0f);
+		Lights.m_DirLight.Specular		= XMFLOAT4(0.5f, 0.5f, 0.5f+0.3f, 1.0f);
+		Lights.m_DirLight.Direction		= XMFLOAT3(0.0f, 0.0f, 0.0f);
 
-	//Materials
-	Lights.m_Material.Ambient = XMFLOAT4(0.48f, 0.48f, 0.48f, 1.0f);
-	Lights.m_Material.Diffuse = XMFLOAT4(0.48f, 0.48f, 0.48f, 1.0f);
-	Lights.m_Material.Specular = XMFLOAT4(0.2f, 0.2f, 0.2f, 10.0f);
+		//Point Light will be postioned on the left		//somewhat green
+		Lights.m_pointLight.Ambient		= XMFLOAT4(0.5f, 0.7f, 0.5f, 1.0f);
+		Lights.m_pointLight.Diffuse		= XMFLOAT4(0.5f, 1.0f, 0.5f, 1.0f);
+		Lights.m_pointLight.Specular		= XMFLOAT4(0.5f, 1.0f, 0.5f, 1.0f);
+		Lights.m_pointLight.Att			= XMFLOAT3(0.0f, .5f, 0.0f);
+
+		Lights.m_pointLight.Range		= 100.0f;
+		Lights.m_pointLight.Position	= XMFLOAT3(1.0f, .0f, 0.0f);
+
+		//Spot Light will be positioned on the right	//somewhat red
+		Lights.m_SpotLight.Ambient	= XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+		Lights.m_SpotLight.Diffuse	= XMFLOAT4(0.8f, 0.2f, 0.2f, 1.0f);
+		Lights.m_SpotLight.Specular	= XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+		Lights.m_SpotLight.Att		= XMFLOAT3(1.0f, 0.0f, 0.0f);
+		Lights.m_SpotLight.Position	= XMFLOAT3(3.0f, 3.0, 0.0f);
+		Lights.m_SpotLight.Spot		= 30.0f;
+		Lights.m_SpotLight.Range	= 20.0f;
+
+		//Materials
+		Lights.m_Material.Ambient		= XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+		Lights.m_Material.Diffuse		= XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+		Lights.m_Material.Specular	= XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+	
+#endif
+
+#if !USINGOLDLIGHTCODE
+	//Directional Light
+	Lights[0].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1);
+	Lights[0].Direction		= XMFLOAT4(0.0f, -1.0f, 1.0f, 0.0f);
+	Lights[0].Color			= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	Lights[0].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	//Point Light
+	Lights[1].Position		= XMFLOAT4(0.0f, 5.0f, 0.0f, 1.0f);
+	Lights[1].Direction		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	Lights[1].Color			= XMFLOAT4(1.0f, 0.001f, 1.0f, 1.0f);
+	Lights[1].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	//Spot Light
+	Lights[2].Position		= XMFLOAT4(0.0f, 0.0f, 0.0, 1.0f);
+	Lights[2].Direction		= XMFLOAT4(0.0, -1.0f, 1.0f, 0.0f);
+	Lights[2].Color			= XMFLOAT4(0.0f, 0.001f, 1.0f, 1.0f);
+	Lights[2].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	//Ambient Light
+	Lights[3].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	Lights[3].Direction		= XMFLOAT4(0.0, -1.0f, 1.0f, 0.0f);
+	Lights[3].Color			= XMFLOAT4(0.001f, 0.001f, 1.0f, 1.0f);
+	Lights[3].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+#endif
 
 #pragma endregion
 
@@ -669,6 +766,42 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &FloorShaderView);
 	VRAMPixelShader.whichTexture = 0;
 
+#pragma region control directionalLight
+#if USINGOLDLIGHTCODE
+		if (GetAsyncKeyState('Z'))
+		{
+			Lights.m_DirLight.Direction.x += TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('X'))
+		{
+			Lights.m_DirLight.Direction.x -= TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('C'))
+		{
+			Lights.m_DirLight.Direction.y += TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('V'))
+		{
+			Lights.m_DirLight.Direction.y -= TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('B'))
+		{
+			Lights.m_DirLight.Direction.z += TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('N'))
+		{
+			Lights.m_DirLight.Direction.z -= TimeWizard.SmoothDelta();
+		}
+		
+		if (GetAsyncKeyState(VK_SPACE))
+		{
+			Lights.m_DirLight.Direction.x = 0;
+			Lights.m_DirLight.Direction.y = 0;
+			Lights.m_DirLight.Direction.z = 0;
+		}
+#endif
+#pragma endregion 
+
 #pragma region ControlCamera
 
 	XMMATRIX T;
@@ -747,7 +880,9 @@ bool DEMO_APP::Run()
 		Checked = false;
 	}
 	m_viewMatrix.r[3] = TempXYZW;
-	Lights.m_EyePosw = (XMFLOAT3)TempXYZW.m128_f32;
+	//Lights.m_EyePosw.x = TempXYZW.m128_f32[0];
+	//Lights.m_EyePosw.y = TempXYZW.m128_f32[1];
+	//Lights.m_EyePosw.z = TempXYZW.m128_f32[2];
 
 	WorldShader.viewMatrix = XMMatrixInverse(nullptr,m_viewMatrix);
 #pragma endregion
@@ -795,6 +930,7 @@ bool DEMO_APP::Run()
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
 
+
 	stride = sizeof(VERTEX);
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferSkyBox, &stride, &offsets);
 
@@ -819,16 +955,12 @@ bool DEMO_APP::Run()
 
 #pragma endregion
 
-	translating.Translate = XMMatrixTranslation(0, 0, 0);
-	translating.Scale = 1.0f;
-	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
-	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
-	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
 	g_pd3dDeviceContext->ClearDepthStencilView(g_StencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 #pragma region Drawing Star
 
 	translating.Translate = XMMatrixTranslation(-2, 0, 0);
+	translating.Scale = 1.0f;
 	WorldShader.worldMatrix = XMMatrixMultiply(XMMatrixRotationY(timer), WorldShader.worldMatrix);
 	translating.Rotation = XMMatrixMultiply(XMMatrixRotationY(timer*5), translating.Rotation);
 
@@ -891,15 +1023,37 @@ bool DEMO_APP::Run()
 
 	g_pd3dDeviceContext->DrawIndexed(SwordIndexCount, 0, 0);
 
-	
-	
 #pragma endregion
 
+#pragma region Drawing Deadpool
+
 	translating.Translate = XMMatrixTranslation(0, 0, 0);
+	translating.Scale = 3.0f;
+	translating.Rotation = XMMatrixRotationY(timer * .5f);
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+	stride = sizeof(VERTEX);
+	VRAMPixelShader.whichTexture = 1;
+
+	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
+	g_pd3dDeviceContext->VSSetShader(DirectVertShader[0], NULL, NULL);
+	g_pd3dDeviceContext->PSSetShader(DirectPixShader[0], NULL, NULL);
+	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &DeadpoolShaderView);
+	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferDeadpool, &stride, &offsets);
+	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferDeadpool, DXGI_FORMAT_R32_UINT, 0);
+	
+	g_pd3dDeviceContext->DrawIndexed(DeadpoolIndexCount, 0, 0);
+
+	translating.Translate = XMMatrixTranslation(0, 0, 0);
+	translating.Rotation = XMMatrixIdentity();
 	translating.Scale = 1.0f;
 	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+#pragma endregion
 
 #pragma region Drawing Floor
 
@@ -919,7 +1073,7 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferPlane, DXGI_FORMAT_R32_UINT, 0);
 
 	g_pd3dDeviceContext->RSSetState(SkyBoxRasterState);
-	g_pd3dDeviceContext->DrawIndexed(6, 0, 0);
+	g_pd3dDeviceContext->DrawIndexed(PlaneIndexCount, 0, 0);
 #pragma endregion
 
 
@@ -959,6 +1113,8 @@ void DEMO_APP::Clean3d()
 	IndexBufferSkyBox->Release();
 	VertexBufferSword->Release();
 	IndexBufferSword->Release();
+	VertexBufferDeadpool->Release();
+	IndexBufferDeadpool->Release();
 
 	DirectVertShader[0]->Release();
 	DirectPixShader[0]->Release();
@@ -978,6 +1134,7 @@ void DEMO_APP::Clean3d()
 	SkyBoxShaderView->Release();
 	FloorShaderView->Release();
 	SwordShaderView->Release();
+	DeadpoolShaderView->Release();
 
 	BlendState->Release();
 }

@@ -26,6 +26,10 @@ namespace LoadModel
 			while (!fin.eof())
 			{
 				fin.get(input);
+				if (input == '2')
+				{
+					input = 'd';
+				}
 				if (input == 'v')
 				{
 					fin.get(input);
@@ -33,7 +37,7 @@ namespace LoadModel
 					{
 						DirectX::XMFLOAT4 temp;
 						fin >> temp.x >> temp.y >> temp.z;
-						//temp.x = -temp.x;
+						temp.x = -temp.x;
 						out_vertex.push_back(temp);
 					}
 					else if (input == 't')
@@ -48,7 +52,7 @@ namespace LoadModel
 					{
 						DirectX::XMFLOAT3 temp;
 						fin >> temp.x >> temp.y >> temp.z;
-						//temp.x = -temp.x;
+						temp.x = -temp.x;
 						out_Normals.push_back(temp);
 					}
 

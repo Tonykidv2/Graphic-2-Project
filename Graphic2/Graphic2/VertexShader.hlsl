@@ -4,6 +4,7 @@ struct INPUT_VERTEX
 {
 	float4 pos : POSITION;
 	float4 color : COLOR;
+	float3 normal : NORMALS;
 };
 
 struct OUTPUT_VERTEX
@@ -11,7 +12,7 @@ struct OUTPUT_VERTEX
 	float4 projectedCoordinate : SV_POSITION;
 	float4 colorOut : COLOR;
 	//float3 uvOUT : UV;
-	//float3 normalOUT: NORMALS;
+	float3 normalOUT: NORMALS;
 };
 
 cbuffer OBJECT : register(b0)
@@ -29,6 +30,7 @@ cbuffer TRANSLATOR : register(b1)
 	float3 padding;
 };
 
+
 OUTPUT_VERTEX main(INPUT_VERTEX fromVertexBuffer)
 {
 	OUTPUT_VERTEX sendToRasterizer = (OUTPUT_VERTEX)0;
@@ -42,5 +44,6 @@ OUTPUT_VERTEX main(INPUT_VERTEX fromVertexBuffer)
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, projectionMatrix);
 
 	sendToRasterizer.colorOut = fromVertexBuffer.color;
+	sendToRasterizer.normalOUT = mul(fromVertexBuffer.normal, (float3x3)projectionMatrix);
 	return sendToRasterizer;
 }

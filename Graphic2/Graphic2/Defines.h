@@ -28,6 +28,8 @@ float Zbuffer[NUM_PIXEL];
 #define ZNEAR 0.1f
 #define ZFAR 100.0f
 
+#define USINGOLDLIGHTCODE FALSE
+
 
 struct SEND_TO_VRAM_WORLD
 {
@@ -52,12 +54,22 @@ struct TRANSLATOR
 
 struct LightSources
 {
+#if USINGOLDLIGHTCODE
 	DirectionalLight m_DirLight;
 	PointLight m_pointLight;
 	SpotLight m_SpotLight;
 	Material m_Material;
 	XMFLOAT3 m_EyePosw;
-	XMFLOAT3 pad;
+	float pad;
+#endif
+
+#if !USINGOLDLIGHTCODE
+	XMFLOAT4 Position;
+	XMFLOAT4 Direction;
+	XMFLOAT4 Color;
+	XMFLOAT4 Radius;
+#endif
+
 };
 
 struct VERTEX
@@ -71,4 +83,5 @@ struct SIMPLE_VERTEX
 {
 	XMFLOAT4 XYZW;
 	XMFLOAT4 RGBA;
+	XMFLOAT3 Norm;
 };
