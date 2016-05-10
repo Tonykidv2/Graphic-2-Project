@@ -50,6 +50,16 @@ struct TRANSLATOR
 	XMFLOAT3 padding;
 };
 
+struct LightSources
+{
+	DirectionalLight m_DirLight;
+	PointLight m_pointLight;
+	SpotLight m_SpotLight;
+	Material m_Material;
+	XMFLOAT3 m_EyePosw;
+	XMFLOAT3 pad;
+};
+
 struct VERTEX
 {
 	XMFLOAT4 XYZW;

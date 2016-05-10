@@ -62,6 +62,7 @@ class DEMO_APP
 	//Constant Buffers
 	ID3D11Buffer*					constantBuffer[2];
 	ID3D11Buffer*					constantPixelBuffer;
+	ID3D11Buffer*					CostantBufferLights;
 
 	//Textures & Samples
 	ID3D11ShaderResourceView*       SkyBoxShaderView;
@@ -86,6 +87,7 @@ class DEMO_APP
 	SEND_TO_VRAM_WORLD WorldShader;
 	SEND_TO_VRAM_PIXEL VRAMPixelShader;
 	TRANSLATOR translating;
+	LightSources Lights;
 	XMMATRIX m_viewMatrix;
 	POINT prevPoint;
 	POINT newPoint;
@@ -159,7 +161,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	SIMPLE_VERTEX Star[12];
 
 	Star[10].XYZW = XMFLOAT4(0, 1, -0.25f, 1);
-	Star[10].RGBA = XMFLOAT4(1, 0, 1, 1);
+	Star[10].RGBA = XMFLOAT4(0, 1, 0, 1);
 
 	Star[11].XYZW = XMFLOAT4(0, 1, 0.25f, 1);
 	Star[11].RGBA = XMFLOAT4(0, 0, 1, 1);
@@ -438,6 +440,14 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	BufferDesc3.ByteWidth = sizeof(SEND_TO_VRAM_PIXEL);
 	BufferDesc3.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	g_pd3dDevice->CreateBuffer(&BufferDesc3, NULL, &constantPixelBuffer);
+
+	D3D11_BUFFER_DESC LightDesc;
+	ZeroMemory(&LightDesc, sizeof(LightDesc));
+	LightDesc.Usage = D3D11_USAGE_DYNAMIC;
+	LightDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	LightDesc.ByteWidth = sizeof(LightSources);
+	LightDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	g_pd3dDevice->CreateBuffer(&LightDesc, NULL, &CostantBufferLights);
 #pragma endregion
 
 #pragma region Depth Buffer
@@ -513,14 +523,43 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma region Sampler
 
 	D3D11_SAMPLER_DESC Sample = {};
-	Sample.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	Sample.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	Sample.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	Sample.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	Sample.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	Sample.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	
 	g_pd3dDevice->CreateSamplerState(&Sample, &sampleTexture);
 
 #pragma endregion
 
+#pragma region Lights INIT
+	//Directional Light				//somewhat blue color
+	Lights.m_DirLight.Ambient	= XMFLOAT4(0.2f, 0.2f, 0.5, 1.0);
+	Lights.m_DirLight.Diffuse	= XMFLOAT4(0.5f, 0.5f, 0.8f, 1.0f);
+	Lights.m_DirLight.Specular	= XMFLOAT4(0.5f, 0.5f, 0.8f, 1.0f);
+	Lights.m_DirLight.Direction = XMFLOAT3(0.57735f, 4, 0.57735f);
+
+	//Point Light will be postioned on the left		//somewhat green
+	Lights.m_pointLight.Ambient		= XMFLOAT4(0.2f, 0.5f, 0.2f, 1.0f);
+	Lights.m_pointLight.Diffuse		= XMFLOAT4(0.6f, 0.9f, 0.6f, 1.0f);
+	Lights.m_pointLight.Specular	= XMFLOAT4(0.6f, 0.9f, 0.6f, 1.0f);
+	Lights.m_pointLight.Att			= XMFLOAT3(0.0f, 1.0f, 0.0f);
+	Lights.m_pointLight.Range		= 10.0f;
+	Lights.m_pointLight.Position	= XMFLOAT4(-4.0f, 4.0f, 0.0f, 1.0f);
+
+	//Spot Light will be positioned on the right	//somewhat red
+	Lights.m_SpotLight.Ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	Lights.m_SpotLight.Diffuse = XMFLOAT4(0.8f, 0.2f, 0.2f, 1.0f);
+	Lights.m_SpotLight.Specular = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+	Lights.m_SpotLight.Att = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	Lights.m_SpotLight.Spot = 3.0f;
+	Lights.m_SpotLight.Range = 10.0f;
+
+	//Materials
+	Lights.m_Material.Ambient = XMFLOAT4(0.48f, 0.48f, 0.48f, 1.0f);
+	Lights.m_Material.Diffuse = XMFLOAT4(0.48f, 0.48f, 0.48f, 1.0f);
+	Lights.m_Material.Specular = XMFLOAT4(0.2f, 0.2f, 0.2f, 10.0f);
+
+#pragma endregion
 
 	TimeWizard.Restart();
 }
@@ -708,7 +747,7 @@ bool DEMO_APP::Run()
 		Checked = false;
 	}
 	m_viewMatrix.r[3] = TempXYZW;
-
+	Lights.m_EyePosw = (XMFLOAT3)TempXYZW.m128_f32;
 
 	WorldShader.viewMatrix = XMMatrixInverse(nullptr,m_viewMatrix);
 #pragma endregion
@@ -732,9 +771,18 @@ bool DEMO_APP::Run()
 	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
 	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);
 
+	//Sending NEW Light Info to videoCard
+	D3D11_MAPPED_SUBRESOURCE LightSauce;
+	g_pd3dDeviceContext->Map(CostantBufferLights, 0, D3D11_MAP_WRITE_DISCARD, 0, &LightSauce);
+	memcpy_s(LightSauce.pData, sizeof(LightSources), &Lights, sizeof(LightSources));
+	g_pd3dDeviceContext->Unmap(CostantBufferLights, 0);
+
+
 	g_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &constantBuffer[0]);
 	g_pd3dDeviceContext->VSSetConstantBuffers(1, 1, &constantBuffer[1]);
 	g_pd3dDeviceContext->PSSetConstantBuffers(0, 1, &constantPixelBuffer);
+	g_pd3dDeviceContext->PSSetConstantBuffers(1, 1, &CostantBufferLights);
+
 #pragma endregion
 
 	unsigned int stride = 0;
@@ -921,7 +969,7 @@ void DEMO_APP::Clean3d()
 	DirectInputLay[1]->Release();
 	constantBuffer[1]->Release();
 	constantPixelBuffer->Release();
-
+	CostantBufferLights->Release();
 
 	DefaultRasterState->Release();
 	SkyBoxRasterState->Release();

@@ -17,10 +17,10 @@ struct DirectionalLight
 
 	DirectionalLight() { ZeroMemory(this, sizeof(this)); }
 
-	XMFLOAT4 Ambient;
-	XMFLOAT4 Diffuse;
-	XMFLOAT4 Specular;
-	XMFLOAT3 Direction;
+	XMFLOAT4 Ambient;	//Everywhere light that bounce everywhere
+	XMFLOAT4 Diffuse;	//Light that falls onto surface
+	XMFLOAT4 Specular;	//The shine that an object from a light sorce
+	XMFLOAT3 Direction;	//Where the Light will shine
 	float padding;
 
 };
@@ -58,7 +58,7 @@ struct SpotLight
 
 	//Packed into a 4D vector: (direction,spot)
 	XMFLOAT3 Direction;
-	float Stop;
+	float Spot;
 
 	//Packed int a 4D vector: (A0, A1, A2, pad)
 	XMFLOAT3 Att;

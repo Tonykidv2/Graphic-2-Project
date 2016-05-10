@@ -41,6 +41,7 @@ namespace LoadModel
 						DirectX::XMFLOAT3 temp;
 						fin >> temp.x >> temp.y;
 						temp.y = 1.0f - temp.y;
+						temp.z = 0;
 						out_UVs.push_back(temp);
 					}
 					else if (input == 'n')

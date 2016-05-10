@@ -1,16 +1,16 @@
 #pragma pack_matrix(row_major)
 
+
+
 struct INPUT_VERTEX
 {
 	float4 pos : POSITION;
-	//float4 color : COLOR;
 	float3 uv : UV;
 	float3 normal : NORMALS;
 };
 
 struct OUTPUT_VERTEX
 {
-	//float4 colorOut : COLOR;
 	float4 projectedCoordinate : SV_POSITION;
 	float3 uvOUT : UV;
 	float3 normalOUT: NORMALS;
@@ -22,6 +22,7 @@ cbuffer OBJECT : register(b0)
 	float4x4 worldMatrix;
 	float4x4 viewMatrix;
 	float4x4 projectionMatrix;
+	
 }
 
 cbuffer TRANSLATOR : register(b1)
@@ -31,7 +32,7 @@ cbuffer TRANSLATOR : register(b1)
 	float Scale;
 	float3 padding;
 	 
-};
+}
 
 OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 {
@@ -46,8 +47,8 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, projectionMatrix);
 	
 	sendToRasterizer.uvOUT = fromVertexBuffer.uv;
-	sendToRasterizer.uvOUT.z = 0;
-	sendToRasterizer.normalOUT = fromVertexBuffer.normal;
+	//sendToRasterizer.uvOUT.z = 0;
+	sendToRasterizer.normalOUT = mul(fromVertexBuffer.normal, (float3x3)projectionMatrix);
 
 	return sendToRasterizer;
 }
