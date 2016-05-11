@@ -512,7 +512,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&LightDesc, sizeof(LightDesc));
 	LightDesc.Usage = D3D11_USAGE_DYNAMIC;
 	LightDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	LightDesc.ByteWidth = sizeof(LightSources);
+	LightDesc.ByteWidth = sizeof(LightSources) * 4;
 	LightDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	g_pd3dDevice->CreateBuffer(&LightDesc, NULL, &CostantBufferLights);
 #pragma endregion
@@ -546,7 +546,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&rasterDesc, sizeof(rasterDesc));
 	rasterDesc.AntialiasedLineEnable = true;
 	rasterDesc.FillMode = D3D11_FILL_SOLID;
-	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.CullMode = D3D11_CULL_FRONT;
 	rasterDesc.FrontCounterClockwise = false;
 	rasterDesc.DepthBias = 0;
 	rasterDesc.SlopeScaledDepthBias = 0;
@@ -637,18 +637,18 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//Directional Light
 	Lights[0].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1);
 	Lights[0].Direction		= XMFLOAT4(0.0f, -1.0f, 1.0f, 0.0f);
-	Lights[0].Color			= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	Lights[0].Color			= XMFLOAT4(.5f, .5f, .5f, 1.0f);
 	Lights[0].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	//Point Light
-	Lights[1].Position		= XMFLOAT4(0.0f, 5.0f, 0.0f, 1.0f);
+	Lights[1].Position		= XMFLOAT4(-1.0f, 1.0f, 0.0f, 1.0f);
 	Lights[1].Direction		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	Lights[1].Color			= XMFLOAT4(1.0f, 0.001f, 1.0f, 1.0f);
-	Lights[1].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	Lights[1].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 5.0f);
 	//Spot Light
-	Lights[2].Position		= XMFLOAT4(0.0f, 0.0f, 0.0, 1.0f);
-	Lights[2].Direction		= XMFLOAT4(0.0, -1.0f, 1.0f, 0.0f);
+	Lights[2].Position		= XMFLOAT4(3.0f, 1.0f, 0.0, 1.0f);
+	Lights[2].Direction		= XMFLOAT4(0.0, -1.0f, .7f, 0.0f);
 	Lights[2].Color			= XMFLOAT4(0.0f, 0.001f, 1.0f, 1.0f);
-	Lights[2].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	Lights[2].Radius		= XMFLOAT4(5.0f, 1.0f, 4.9f, 0.9f); //x = radius y = inner z = outer
 	//Ambient Light
 	Lights[3].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 	Lights[3].Direction		= XMFLOAT4(0.0, -1.0f, 1.0f, 0.0f);
@@ -657,8 +657,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #endif
 
 #pragma endregion
-
 	TimeWizard.Restart();
+
 }
 
 void DEMO_APP::init3D(HWND hWnd)
@@ -766,7 +766,7 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &FloorShaderView);
 	VRAMPixelShader.whichTexture = 0;
 
-#pragma region control directionalLight
+#pragma region control pointLight
 #if USINGOLDLIGHTCODE
 		if (GetAsyncKeyState('Z'))
 		{
@@ -800,6 +800,41 @@ bool DEMO_APP::Run()
 			Lights.m_DirLight.Direction.z = 0;
 		}
 #endif
+#if !USINGOLDLIGHTCODE
+		if (GetAsyncKeyState('Z'))
+		{
+			Lights[1].Position.x += TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('X'))
+		{
+			Lights[1].Position.x -= TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('C'))
+		{
+			Lights[1].Position.y += TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('V'))
+		{
+			Lights[1].Position.y -= TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('B'))
+		{
+			Lights[1].Position.z += TimeWizard.SmoothDelta();
+		}
+		if (GetAsyncKeyState('N'))
+		{
+			Lights[1].Position.z -= TimeWizard.SmoothDelta();
+		}
+
+		if (GetAsyncKeyState(VK_SPACE))
+		{
+			Lights[1].Position.x = -1.0f;
+			Lights[1].Position.y = 1.0f;
+			Lights[1].Position.z = 0;
+		}
+		
+#endif
+
 #pragma endregion 
 
 #pragma region ControlCamera
@@ -909,7 +944,7 @@ bool DEMO_APP::Run()
 	//Sending NEW Light Info to videoCard
 	D3D11_MAPPED_SUBRESOURCE LightSauce;
 	g_pd3dDeviceContext->Map(CostantBufferLights, 0, D3D11_MAP_WRITE_DISCARD, 0, &LightSauce);
-	memcpy_s(LightSauce.pData, sizeof(LightSources), &Lights, sizeof(LightSources));
+	memcpy_s(LightSauce.pData, sizeof(Lights), Lights, sizeof(Lights));
 	g_pd3dDeviceContext->Unmap(CostantBufferLights, 0);
 
 
@@ -999,10 +1034,11 @@ bool DEMO_APP::Run()
 
 #pragma endregion
 
+
 #pragma region DrawingSword
 
 	translating.Translate = XMMatrixTranslation(-3, 3, 0);
-	translating.Scale = 20.0f;
+	translating.Scale = .05f;
 	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
@@ -1028,11 +1064,15 @@ bool DEMO_APP::Run()
 #pragma region Drawing Deadpool
 
 	translating.Translate = XMMatrixTranslation(0, 0, 0);
-	translating.Scale = 3.0f;
-	translating.Rotation = XMMatrixRotationY(timer * .5f);
+	translating.Scale = .3f;
+	WorldShader.worldMatrix = XMMatrixRotationY(timer * .5f);
 	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+	g_pd3dDeviceContext->Map(constantBuffer[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource);
+	memcpy_s(m_mapSource.pData, sizeof(SEND_TO_VRAM_WORLD), &WorldShader, sizeof(SEND_TO_VRAM_WORLD));
+	g_pd3dDeviceContext->Unmap(constantBuffer[0], 0);
 
 	stride = sizeof(VERTEX);
 	VRAMPixelShader.whichTexture = 1;
@@ -1052,6 +1092,11 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+	WorldShader.worldMatrix = XMMatrixIdentity();
+	g_pd3dDeviceContext->Map(constantBuffer[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource);
+	memcpy_s(m_mapSource.pData, sizeof(SEND_TO_VRAM_WORLD), &WorldShader, sizeof(SEND_TO_VRAM_WORLD));
+	g_pd3dDeviceContext->Unmap(constantBuffer[0], 0);
 
 #pragma endregion
 

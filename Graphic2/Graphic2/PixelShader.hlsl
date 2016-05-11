@@ -20,5 +20,7 @@ float4 main(INPUT_PIXEL colorFromRasterizer) : SV_TARGET
 	finalColor.xyz += colorFromRasterizer.color.xyz;
 	finalColor.w = colorFromRasterizer.color.w;
 
+
+
 	return finalColor;
 }

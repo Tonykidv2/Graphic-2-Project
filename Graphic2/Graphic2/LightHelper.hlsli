@@ -185,13 +185,8 @@ struct Lights
 {
 
 	//w = (AMB, DIR, PNT, SPT)
-	
-	//Spot light does use position
-	//Directional use position
-	//stop do use lights
 	float4 Position;
-	//ambient light does not use direction
-	//Directional light Direction
+	
 	float4 Direction;
 	//color
 	float4 Color;
@@ -207,4 +202,28 @@ float3 DirectionalLightCalc(Lights light, float3 surface_normal)
 	return light.Color.xyz * dirLightRatio;
 }
 
-//float3 PNTLightCalc(Lights light, )
+float3 PNTLightCalc(Lights light, float3 surface_normal, float3 pos)
+{
+
+	float3 lightVec = normalize(light.Position - pos);
+	float dirLightRatio = saturate(dot(normalize(lightVec), normalize(surface_normal)));
+
+	float att = 1.0 - saturate(length(light.Position - pos) / light.radius.w);
+
+	return dirLightRatio * light.Color.xyz * att;
+}
+
+float3 SPOTLightCalc(Lights light, float3 surface_normal, float3 pos)
+{
+
+	float3 lightVec = normalize(light.Position - pos);
+	float SurfaceRatio = saturate(dot(-lightVec, light.Direction));
+	float SpotFactor = (SurfaceRatio > light.radius.w) ? 1 : 0;
+
+	float dirLightRatio = saturate(dot(normalize(lightVec), normalize(surface_normal)));
+
+	float att = 1.0 - saturate(length(light.Position - pos) / light.radius.x);
+	float attt = 1.0 - saturate((light.radius.y - SurfaceRatio) / (light.radius.y - light.radius.z));
+
+	return SpotFactor * dirLightRatio * light.Color.xyz * att *attt;
+}

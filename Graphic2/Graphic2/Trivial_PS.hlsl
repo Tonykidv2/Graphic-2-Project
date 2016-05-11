@@ -6,6 +6,7 @@ struct INPUT_PIXEL
 	float4 pos : SV_POSITION;
 	float3 uv : UV;
 	float3 normal : NORMALS;
+	float3 posW : POSITIONW;
 };
 
 TextureCube TEXTURE : register(t0);
@@ -41,20 +42,33 @@ float4 main( INPUT_PIXEL colorFromRasterizer ) : SV_TARGET
 	
 	float4 color;
 
-	if(WhichTexture == 0)
+	if (WhichTexture == 0)
+	{
 		color = TEXTURE.Sample(FILTER, colorFromRasterizer.normal).rgba;
-
-	if(WhichTexture == 1)
-		color = Texture1.Sample(FILTER, colorFromRasterizer.uv).rgba;
-
-	if(WhichTexture == 0)
 		return color;
+	}
 
+	if (WhichTexture == 1)
+	{
+		color = Texture1.Sample(FILTER, colorFromRasterizer.uv).rgba;
+		if (color.r < 0.1f)
+			color.r = 0.1f;
+		if (color.g < 0.0f)
+			color.g = 0.1f;
+		if (color.b < 0.0f)
+			color.b = 0.1f;
+
+	}
 #if !USINGOLDLIGHTCODE
 
 	float4 finalColor = float4(0, 0, 0, 1);
 
-	finalColor.xyz = DirectionalLightCalc(list[0], colorFromRasterizer.normal);
+	//finalColor.xyz += DirectionalLightCalc(list[0], colorFromRasterizer.normal);
+	finalColor.xyz += PNTLightCalc(list[1], colorFromRasterizer.normal, colorFromRasterizer.posW);
+	finalColor.xyz += SPOTLightCalc(list[2], colorFromRasterizer.normal, colorFromRasterizer.posW);
+
+
+
 	finalColor.xyz *= color.xyz;
 	finalColor.w = color.w;
 
