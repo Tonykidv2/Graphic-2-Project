@@ -58,12 +58,15 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, worldMatrix);
 	sendToRasterizer.posW = sendToRasterizer.projectedCoordinate;
+
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, viewMatrix);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, projectionMatrix);
 	
 	sendToRasterizer.uvOUT = fromVertexBuffer.uv;
 	sendToRasterizer.uvOUT.z = 0;
+
 	sendToRasterizer.normalOUT = mul(fromVertexBuffer.normal, (float3x3)worldMatrix);
 	sendToRasterizer.outTangent = mul(fromVertexBuffer.Tangent, (float3x3)worldMatrix);
+
 	return sendToRasterizer;
 }

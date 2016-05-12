@@ -43,8 +43,9 @@ cbuffer CB_Lights : register(b1)
 float4 main( INPUT_PIXEL colorFromRasterizer ) : SV_TARGET
 {
 	
-	float4 color;
-	float3 ColorNorm;
+	float4 color = float4(0, 0, 0, 1);
+	float3 ColorNorm = float3(0, 0, 0);
+
 	if (WhichTexture == 0)
 	{
 		color = TEXTURE.Sample(FILTER, colorFromRasterizer.normal).rgba;
@@ -56,17 +57,18 @@ float4 main( INPUT_PIXEL colorFromRasterizer ) : SV_TARGET
 		color = Texture1.Sample(FILTER, colorFromRasterizer.uv).rgba;
 		ColorNorm = TextureNorm.Sample(FILTER, colorFromRasterizer.uv).rgb;
 		color.xyz += NormalCalcFunc(ColorNorm, colorFromRasterizer.Tangent , colorFromRasterizer.normal);
-
 	}
-#if !USINGOLDLIGHTCODE
+
+	if (WhichTexture == 2)
+		color = Texture1.Sample(FILTER, colorFromRasterizer.uv).rgba;
+
 
 	float4 finalColor = float4(0, 0, 0, 1);
+#if !USINGOLDLIGHTCODE
 
 	finalColor.xyz += DirectionalLightCalc(list[0], colorFromRasterizer.normal);
 	finalColor.xyz += PNTLightCalc(list[1], colorFromRasterizer.normal, colorFromRasterizer.posW);
 	finalColor.xyz += SPOTLightCalc(list[2], colorFromRasterizer.normal, colorFromRasterizer.posW);
-
-
 
 	finalColor.xyz *= color.xyz;
 	finalColor.w = color.w;

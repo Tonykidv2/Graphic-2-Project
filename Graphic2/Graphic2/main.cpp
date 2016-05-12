@@ -107,6 +107,8 @@ class DEMO_APP
 	POINT prevPoint;
 	POINT newPoint;
 	bool Checked;
+	bool ToggleBumpMap;
+
 public:
 	
 
@@ -167,7 +169,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	translating.Scale = 1;
 	g_ScreenChanged = false;
 	g_Minimized = false;
-
+	ToggleBumpMap = true;
 #pragma endregion
 
 #pragma region Creating Star Shape
@@ -772,7 +774,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		//Point Light will be postioned on the left		//somewhat green
 		Lights.m_pointLight.Ambient		= XMFLOAT4(0.5f, 0.7f, 0.5f, 1.0f);
 		Lights.m_pointLight.Diffuse		= XMFLOAT4(0.5f, 1.0f, 0.5f, 1.0f);
-		Lights.m_pointLight.Specular		= XMFLOAT4(0.5f, 1.0f, 0.5f, 1.0f);
+		Lights.m_pointLight.Specular	= XMFLOAT4(0.5f, 1.0f, 0.5f, 1.0f);
 		Lights.m_pointLight.Att			= XMFLOAT3(0.0f, .5f, 0.0f);
 
 		Lights.m_pointLight.Range		= 100.0f;
@@ -808,8 +810,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//Spot Light
 	Lights[2].Position		= XMFLOAT4(3.0f, 1.0f, 0.0, 1.0f);
 	Lights[2].Direction		= XMFLOAT4(0.0, -1.0f, .7f, 0.0f);
-	Lights[2].Color			= XMFLOAT4(0.0f, 0.001f, 1.0f, 1.0f);
-	Lights[2].Radius		= XMFLOAT4(5.0f, 1.0f, 4.9f, 0.9f); //x = radius y = inner z = outer
+	Lights[2].Color			= XMFLOAT4(0.001f, 0.001f, 1.0f, 1.0f);
+	Lights[2].Radius		= XMFLOAT4(100.0f, 1.0f, 99.9f, 0.9f); //x = radius y = inner z = outer
 	//Ambient Light
 	Lights[3].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 	Lights[3].Direction		= XMFLOAT4(0.0, -1.0f, 1.0f, 0.0f);
@@ -928,7 +930,7 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &FloorShaderView);
 	VRAMPixelShader.whichTexture = 0;
 
-#pragma region control pointLight
+#pragma region control Light
 #if USINGOLDLIGHTCODE
 		if (GetAsyncKeyState('Z'))
 		{
@@ -965,27 +967,27 @@ bool DEMO_APP::Run()
 #if !USINGOLDLIGHTCODE
 		if (GetAsyncKeyState('Z'))
 		{
-			Lights[1].Position.x += TimeWizard.SmoothDelta();
+			Lights[1].Position.x += (float)TimeWizard.SmoothDelta();
 		}
 		if (GetAsyncKeyState('X'))
 		{
-			Lights[1].Position.x -= TimeWizard.SmoothDelta();
+			Lights[1].Position.x -= (float)TimeWizard.SmoothDelta();
 		}
 		if (GetAsyncKeyState('C'))
 		{
-			Lights[1].Position.y += TimeWizard.SmoothDelta();
+			Lights[1].Position.y += (float)TimeWizard.SmoothDelta();
 		}
 		if (GetAsyncKeyState('V'))
 		{
-			Lights[1].Position.y -= TimeWizard.SmoothDelta();
+			Lights[1].Position.y -= (float)TimeWizard.SmoothDelta();
 		}
 		if (GetAsyncKeyState('B'))
 		{
-			Lights[1].Position.z += TimeWizard.SmoothDelta();
+			Lights[1].Position.z += (float)TimeWizard.SmoothDelta();
 		}
 		if (GetAsyncKeyState('N'))
 		{
-			Lights[1].Position.z -= TimeWizard.SmoothDelta();
+			Lights[1].Position.z -= (float)TimeWizard.SmoothDelta();
 		}
 
 		if (GetAsyncKeyState(VK_SPACE))
@@ -996,8 +998,16 @@ bool DEMO_APP::Run()
 		}
 		
 #endif
-
 #pragma endregion 
+
+#pragma region Toggle Normal Map
+
+		if (GetAsyncKeyState('M') & 0x1)
+		{
+			ToggleBumpMap = !ToggleBumpMap;
+		}
+
+#pragma endregion
 
 #pragma region ControlCamera
 
@@ -1006,12 +1016,12 @@ bool DEMO_APP::Run()
 	if (GetAsyncKeyState('W'))
 	{
 		
-		T = XMMatrixTranslation(0, 0, TimeWizard.Delta());
+		T = XMMatrixTranslation(0, 0, (float)TimeWizard.Delta());
 		m_viewMatrix = XMMatrixMultiply(T, m_viewMatrix);
 	}
 	if (GetAsyncKeyState('S'))
 	{
-		T = XMMatrixTranslation(0, 0, -TimeWizard.Delta());
+		T = XMMatrixTranslation(0, 0, (float)-TimeWizard.Delta());
 		m_viewMatrix = XMMatrixMultiply(T, m_viewMatrix);
 	}
 
@@ -1019,13 +1029,13 @@ bool DEMO_APP::Run()
 	if (GetAsyncKeyState('D'))
 	{
 		
-		L = XMMatrixTranslation(TimeWizard.Delta(), 0, 0);
+		L = XMMatrixTranslation((float)TimeWizard.Delta(), 0, 0);
 		m_viewMatrix = XMMatrixMultiply(L, m_viewMatrix);
 	}
 	if (GetAsyncKeyState('A'))
 	{
 		
-		L = XMMatrixTranslation(-TimeWizard.Delta(), 0, 0);
+		L = XMMatrixTranslation((float)-TimeWizard.Delta(), 0, 0);
 		m_viewMatrix = XMMatrixMultiply(L, m_viewMatrix);
 	}
 
@@ -1033,12 +1043,12 @@ bool DEMO_APP::Run()
 	if (GetAsyncKeyState(VK_UP))
 	{
 		
-		C = XMMatrixTranslation(0, TimeWizard.Delta(), 0);
+		C = XMMatrixTranslation(0, (float)TimeWizard.Delta(), 0);
 		m_viewMatrix = XMMatrixMultiply(m_viewMatrix, C);
 	}
 	if (GetAsyncKeyState(VK_DOWN))
 	{
-		C = XMMatrixTranslation(0, -TimeWizard.Delta(), 0);
+		C = XMMatrixTranslation(0, (float)-TimeWizard.Delta(), 0);
 		m_viewMatrix = XMMatrixMultiply(m_viewMatrix, C);
 	}
 
@@ -1077,11 +1087,18 @@ bool DEMO_APP::Run()
 		Checked = false;
 	}
 	m_viewMatrix.r[3] = TempXYZW;
-	//Lights.m_EyePosw.x = TempXYZW.m128_f32[0];
-	//Lights.m_EyePosw.y = TempXYZW.m128_f32[1];
-	//Lights.m_EyePosw.z = TempXYZW.m128_f32[2];
+	Lights[2].Position.x = TempXYZW.m128_f32[0];
+	Lights[2].Position.y = TempXYZW.m128_f32[1];
+	Lights[2].Position.z = TempXYZW.m128_f32[2];
+	Lights[2].Position.w = TempXYZW.m128_f32[3];
 
 	WorldShader.viewMatrix = XMMatrixInverse(nullptr,m_viewMatrix);
+
+
+	Lights[2].Direction.x = WorldShader.viewMatrix.r[0].m128_f32[2];
+	Lights[2].Direction.y = WorldShader.viewMatrix.r[1].m128_f32[2];
+	Lights[2].Direction.z = WorldShader.viewMatrix.r[2].m128_f32[2];
+
 #pragma endregion
 
 #pragma region Updating Video Buffers
@@ -1106,7 +1123,7 @@ bool DEMO_APP::Run()
 	//Sending NEW Light Info to videoCard
 	D3D11_MAPPED_SUBRESOURCE LightSauce;
 	g_pd3dDeviceContext->Map(CostantBufferLights, 0, D3D11_MAP_WRITE_DISCARD, 0, &LightSauce);
-	memcpy_s(LightSauce.pData, sizeof(Lights), Lights, sizeof(Lights));
+	memcpy_s(LightSauce.pData, sizeof(Lights), &Lights, sizeof(Lights));
 	g_pd3dDeviceContext->Unmap(CostantBufferLights, 0);
 
 
@@ -1205,8 +1222,10 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
 
 	stride = sizeof(VERTEX);
-	VRAMPixelShader.whichTexture = 1;
-
+	if(ToggleBumpMap)
+		VRAMPixelShader.whichTexture = 1;
+	else if (!ToggleBumpMap)
+		VRAMPixelShader.whichTexture = 2;
 	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
 	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
 	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);
@@ -1237,7 +1256,11 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->Unmap(constantBuffer[0], 0);
 
 	stride = sizeof(VERTEX);
-	VRAMPixelShader.whichTexture = 1;
+	
+	if (ToggleBumpMap)
+		VRAMPixelShader.whichTexture = 1;
+	else if (!ToggleBumpMap)
+		VRAMPixelShader.whichTexture = 2;
 
 	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
 	g_pd3dDeviceContext->VSSetShader(DirectVertShader[0], NULL, NULL);
@@ -1269,7 +1292,11 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->PSSetShaderResources(2, 1, &FloorNORMShaderView);
 
 	stride = sizeof(VERTEX);
-	VRAMPixelShader.whichTexture = 1;
+	
+	if (ToggleBumpMap)
+		VRAMPixelShader.whichTexture = 1;
+	else if (!ToggleBumpMap)
+		VRAMPixelShader.whichTexture = 2;
 
 	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
 	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
