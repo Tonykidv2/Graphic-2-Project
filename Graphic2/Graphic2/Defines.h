@@ -77,6 +77,8 @@ struct VERTEX
 	XMFLOAT4 XYZW;
 	XMFLOAT3 UV;
 	XMFLOAT3 normals;
+	XMFLOAT3 Tangent;
+	XMFLOAT3 BiTangent;
 };
 
 struct SIMPLE_VERTEX

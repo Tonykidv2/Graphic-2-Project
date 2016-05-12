@@ -70,8 +70,11 @@ class DEMO_APP
 	//Textures & Samples
 	ID3D11ShaderResourceView*       SkyBoxShaderView;
 	ID3D11ShaderResourceView*		FloorShaderView;
+	ID3D11ShaderResourceView*		FloorNORMShaderView;
 	ID3D11ShaderResourceView*		SwordShaderView;
+	ID3D11ShaderResourceView*		SwordNORMShaderView;
 	ID3D11ShaderResourceView*		DeadpoolShaderView;
+	ID3D11ShaderResourceView*		DeadpoolNORMShaderView;
 	ID3D11SamplerState*				sampleTexture;
 
 	//RasterStates
@@ -223,6 +226,45 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		plane[i].normals	= norms[norm_indices[i]];
 		planeindices[i]		= i;
 	}
+	for (unsigned int i = 0; i < vert_indices.size(); i+=3)
+	{
+		XMFLOAT4 v0 = plane[i + 0].XYZW;
+		XMFLOAT4 v1 = plane[i + 1].XYZW;
+		XMFLOAT4 v2 = plane[i + 2].XYZW;
+		
+		XMFLOAT3 uv0 = plane[i + 0].UV;
+		XMFLOAT3 uv1 = plane[i + 1].UV;
+		XMFLOAT3 uv2 = plane[i + 2].UV;
+
+		XMFLOAT4 deltaPos1 = XMFLOAT4(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z, v1.w - v0.w);
+		XMFLOAT4 deltaPos2 = XMFLOAT4(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z, v2.w - v0.w);
+
+		XMFLOAT3 deltaUV1 = XMFLOAT3(uv1.x - uv0.x, uv1.y - uv0.y, uv1.z - uv0.z);
+		XMFLOAT3 deltaUV2 = XMFLOAT3(uv2.x - uv0.x, uv2.y - uv0.y, uv2.z - uv0.z);
+
+		float ratio = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+
+		XMFLOAT4 deltaPos1uv2 = XMFLOAT4(deltaPos1.x * deltaUV2.y, deltaPos1.y * deltaUV2.y, deltaPos1.z * deltaUV2.y, deltaPos1.w * deltaUV2.y);
+		XMFLOAT4 deltaPos2uv1 = XMFLOAT4(deltaPos2.x * deltaUV1.y, deltaPos2.y * deltaUV1.y, deltaPos2.z * deltaUV1.y, deltaPos2.w * deltaUV1.y);
+
+		XMFLOAT3 tangent = XMFLOAT3((deltaPos1uv2.x - deltaPos2uv1.x) * ratio, (deltaPos1uv2.y - deltaPos2uv1.y) * ratio, 
+			(deltaPos1uv2.z - deltaPos2uv1.z) * ratio);
+
+		XMFLOAT4 deltaPos2uv1b = XMFLOAT4(deltaPos2.x * deltaUV1.x, deltaPos2.y * deltaUV1.x, deltaPos2.z * deltaUV1.x, deltaPos2.x * deltaUV1.x);
+		XMFLOAT4 deltaPos1uv2b = XMFLOAT4(deltaPos1.x * deltaUV2.x, deltaPos1.y * deltaUV2.x, deltaPos1.z * deltaUV2.x, deltaPos1.w * deltaUV2.x);
+
+		XMFLOAT3 bitangent = XMFLOAT3((deltaPos2uv1b.x - deltaPos1uv2b.x) * ratio, (deltaPos2uv1b.y - deltaPos1uv2b.y) * ratio,
+			(deltaPos2uv1b.z - deltaPos1uv2b.z) * ratio);
+	
+	
+		plane[i + 0].Tangent = tangent;
+		plane[i + 1].Tangent = tangent;
+		plane[i + 2].Tangent = tangent;
+
+		plane[i + 0].BiTangent = tangent;
+		plane[i + 1].BiTangent = tangent;
+		plane[i + 2].BiTangent = tangent;
+	}
 
 #pragma region VertexBuffer for Floor
 	D3D11_BUFFER_DESC PlanebufferDesc;
@@ -279,6 +321,45 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	}
 
+	for (unsigned int i = 0; i < vert_indices.size(); i += 3)
+	{
+		XMFLOAT4 v0 = sky_Box[i + 0].XYZW;
+		XMFLOAT4 v1 = sky_Box[i + 1].XYZW;
+		XMFLOAT4 v2 = sky_Box[i + 2].XYZW;
+
+		XMFLOAT3 uv0 = sky_Box[i + 0].UV;
+		XMFLOAT3 uv1 = sky_Box[i + 1].UV;
+		XMFLOAT3 uv2 = sky_Box[i + 2].UV;
+
+		XMFLOAT4 deltaPos1 = XMFLOAT4(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z, v1.w - v0.w);
+		XMFLOAT4 deltaPos2 = XMFLOAT4(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z, v2.w - v0.w);
+
+		XMFLOAT3 deltaUV1 = XMFLOAT3(uv1.x - uv0.x, uv1.y - uv0.y, uv1.z - uv0.z);
+		XMFLOAT3 deltaUV2 = XMFLOAT3(uv2.x - uv0.x, uv2.y - uv0.y, uv2.z - uv0.z);
+
+		float ratio = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+
+		XMFLOAT4 deltaPos1uv2 = XMFLOAT4(deltaPos1.x * deltaUV2.y, deltaPos1.y * deltaUV2.y, deltaPos1.z * deltaUV2.y, deltaPos1.w * deltaUV2.y);
+		XMFLOAT4 deltaPos2uv1 = XMFLOAT4(deltaPos2.x * deltaUV1.y, deltaPos2.y * deltaUV1.y, deltaPos2.z * deltaUV1.y, deltaPos2.w * deltaUV1.y);
+
+		XMFLOAT3 tangent = XMFLOAT3((deltaPos1uv2.x - deltaPos2uv1.x) * ratio, (deltaPos1uv2.y - deltaPos2uv1.y) * ratio,
+			(deltaPos1uv2.z - deltaPos2uv1.z) * ratio);
+
+		XMFLOAT4 deltaPos2uv1b = XMFLOAT4(deltaPos2.x * deltaUV1.x, deltaPos2.y * deltaUV1.x, deltaPos2.z * deltaUV1.x, deltaPos2.x * deltaUV1.x);
+		XMFLOAT4 deltaPos1uv2b = XMFLOAT4(deltaPos1.x * deltaUV2.x, deltaPos1.y * deltaUV2.x, deltaPos1.z * deltaUV2.x, deltaPos1.w * deltaUV2.x);
+
+		XMFLOAT3 bitangent = XMFLOAT3((deltaPos2uv1b.x - deltaPos1uv2b.x) * ratio, (deltaPos2uv1b.y - deltaPos1uv2b.y) * ratio,
+			(deltaPos2uv1b.z - deltaPos1uv2b.z) * ratio);
+
+
+		sky_Box[i + 0].Tangent = tangent;
+		sky_Box[i + 1].Tangent = tangent;
+		sky_Box[i + 2].Tangent = tangent;
+
+		sky_Box[i + 0].BiTangent = tangent;
+		sky_Box[i + 1].BiTangent = tangent;
+		sky_Box[i + 2].BiTangent = tangent;
+	}
 #pragma region VertexBuffer for Skybox
 	D3D11_BUFFER_DESC Sky_BoxbufferDesc;
 	ZeroMemory(&Sky_BoxbufferDesc, sizeof(Sky_BoxbufferDesc));
@@ -335,7 +416,45 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		SwordIndices[i]		= i;
 	}
 
+	for (unsigned int i = 0; i < vert_indices.size(); i += 3)
+	{
+		XMFLOAT4 v0 = sword[i + 0].XYZW;
+		XMFLOAT4 v1 = sword[i + 1].XYZW;
+		XMFLOAT4 v2 = sword[i + 2].XYZW;
 
+		XMFLOAT3 uv0 = sword[i + 0].UV;
+		XMFLOAT3 uv1 = sword[i + 1].UV;
+		XMFLOAT3 uv2 = sword[i + 2].UV;
+
+		XMFLOAT4 deltaPos1 = XMFLOAT4(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z, v1.w - v0.w);
+		XMFLOAT4 deltaPos2 = XMFLOAT4(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z, v2.w - v0.w);
+
+		XMFLOAT3 deltaUV1 = XMFLOAT3(uv1.x - uv0.x, uv1.y - uv0.y, uv1.z - uv0.z);
+		XMFLOAT3 deltaUV2 = XMFLOAT3(uv2.x - uv0.x, uv2.y - uv0.y, uv2.z - uv0.z);
+
+		float ratio = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+
+		XMFLOAT4 deltaPos1uv2 = XMFLOAT4(deltaPos1.x * deltaUV2.y, deltaPos1.y * deltaUV2.y, deltaPos1.z * deltaUV2.y, deltaPos1.w * deltaUV2.y);
+		XMFLOAT4 deltaPos2uv1 = XMFLOAT4(deltaPos2.x * deltaUV1.y, deltaPos2.y * deltaUV1.y, deltaPos2.z * deltaUV1.y, deltaPos2.w * deltaUV1.y);
+
+		XMFLOAT3 tangent = XMFLOAT3((deltaPos1uv2.x - deltaPos2uv1.x) * ratio, (deltaPos1uv2.y - deltaPos2uv1.y) * ratio,
+			(deltaPos1uv2.z - deltaPos2uv1.z) * ratio);
+
+		XMFLOAT4 deltaPos2uv1b = XMFLOAT4(deltaPos2.x * deltaUV1.x, deltaPos2.y * deltaUV1.x, deltaPos2.z * deltaUV1.x, deltaPos2.x * deltaUV1.x);
+		XMFLOAT4 deltaPos1uv2b = XMFLOAT4(deltaPos1.x * deltaUV2.x, deltaPos1.y * deltaUV2.x, deltaPos1.z * deltaUV2.x, deltaPos1.w * deltaUV2.x);
+
+		XMFLOAT3 bitangent = XMFLOAT3((deltaPos2uv1b.x - deltaPos1uv2b.x) * ratio, (deltaPos2uv1b.y - deltaPos1uv2b.y) * ratio,
+			(deltaPos2uv1b.z - deltaPos1uv2b.z) * ratio);
+
+
+		sword[i + 0].Tangent = tangent;
+		sword[i + 1].Tangent = tangent;
+		sword[i + 2].Tangent = tangent;
+
+		sword[i + 0].BiTangent = tangent;
+		sword[i + 1].BiTangent = tangent;
+		sword[i + 2].BiTangent = tangent;
+	}
 #pragma region VertexBuffer Sword
 	D3D11_BUFFER_DESC SwordbufferDesc;
 	ZeroMemory(&SwordbufferDesc, sizeof(SwordbufferDesc));
@@ -391,7 +510,45 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		DeadpoolIndices[i]	= i;
 	}
 
+	for (unsigned int i = 0; i < vert_indices.size(); i += 3)
+	{
+		XMFLOAT4 v0 = Deadpool[i + 0].XYZW;
+		XMFLOAT4 v1 = Deadpool[i + 1].XYZW;
+		XMFLOAT4 v2 = Deadpool[i + 2].XYZW;
 
+		XMFLOAT3 uv0 = Deadpool[i + 0].UV;
+		XMFLOAT3 uv1 = Deadpool[i + 1].UV;
+		XMFLOAT3 uv2 = Deadpool[i + 2].UV;
+
+		XMFLOAT4 deltaPos1 = XMFLOAT4(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z, v1.w - v0.w);
+		XMFLOAT4 deltaPos2 = XMFLOAT4(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z, v2.w - v0.w);
+
+		XMFLOAT3 deltaUV1 = XMFLOAT3(uv1.x - uv0.x, uv1.y - uv0.y, uv1.z - uv0.z);
+		XMFLOAT3 deltaUV2 = XMFLOAT3(uv2.x - uv0.x, uv2.y - uv0.y, uv2.z - uv0.z);
+
+		float ratio = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+
+		XMFLOAT4 deltaPos1uv2 = XMFLOAT4(deltaPos1.x * deltaUV2.y, deltaPos1.y * deltaUV2.y, deltaPos1.z * deltaUV2.y, deltaPos1.w * deltaUV2.y);
+		XMFLOAT4 deltaPos2uv1 = XMFLOAT4(deltaPos2.x * deltaUV1.y, deltaPos2.y * deltaUV1.y, deltaPos2.z * deltaUV1.y, deltaPos2.w * deltaUV1.y);
+
+		XMFLOAT3 tangent = XMFLOAT3((deltaPos1uv2.x - deltaPos2uv1.x) * ratio, (deltaPos1uv2.y - deltaPos2uv1.y) * ratio,
+			(deltaPos1uv2.z - deltaPos2uv1.z) * ratio);
+
+		XMFLOAT4 deltaPos2uv1b = XMFLOAT4(deltaPos2.x * deltaUV1.x, deltaPos2.y * deltaUV1.x, deltaPos2.z * deltaUV1.x, deltaPos2.x * deltaUV1.x);
+		XMFLOAT4 deltaPos1uv2b = XMFLOAT4(deltaPos1.x * deltaUV2.x, deltaPos1.y * deltaUV2.x, deltaPos1.z * deltaUV2.x, deltaPos1.w * deltaUV2.x);
+
+		XMFLOAT3 bitangent = XMFLOAT3((deltaPos2uv1b.x - deltaPos1uv2b.x) * ratio, (deltaPos2uv1b.y - deltaPos1uv2b.y) * ratio,
+			(deltaPos2uv1b.z - deltaPos1uv2b.z) * ratio);
+
+
+		Deadpool[i + 0].Tangent = tangent;
+		Deadpool[i + 1].Tangent = tangent;
+		Deadpool[i + 2].Tangent = tangent;
+
+		Deadpool[i + 0].BiTangent = tangent;
+		Deadpool[i + 1].BiTangent = tangent;
+		Deadpool[i + 2].BiTangent = tangent;
+	}
 #pragma region VertexBuffer Deadpool
 	D3D11_BUFFER_DESC DeadpoolbufferDesc;
 	ZeroMemory(&DeadpoolbufferDesc, sizeof(DeadpoolbufferDesc));
@@ -468,6 +625,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA },
 		{ "UV", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMALS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	D3D11_INPUT_ELEMENT_DESC LayoutSimple[] =
@@ -477,7 +636,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		{ "NORMALS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 
-	g_pd3dDevice->CreateInputLayout(LayoutComplex, 3, Trivial_VS, sizeof(Trivial_VS), &DirectInputLay[0]);
+	g_pd3dDevice->CreateInputLayout(LayoutComplex, 5, Trivial_VS, sizeof(Trivial_VS), &DirectInputLay[0]);
 	g_pd3dDevice->CreateInputLayout(LayoutSimple, 3, VertexShader, sizeof(VertexShader), &DirectInputLay[1]);
 
 #pragma endregion
@@ -580,11 +739,13 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region Textures
-
 	CreateDDSTextureFromFile(g_pd3dDevice, L"SkyBox.dds", NULL, &SkyBoxShaderView);
 	CreateDDSTextureFromFile(g_pd3dDevice, L"brickwall.dds", NULL, &FloorShaderView);
 	CreateDDSTextureFromFile(g_pd3dDevice, L"DeadPoolSword.dds", NULL, &SwordShaderView);
 	CreateDDSTextureFromFile(g_pd3dDevice, L"DeadPoolTex.dds", NULL, &DeadpoolShaderView);
+	CreateDDSTextureFromFile(g_pd3dDevice, L"DeadPool_NORMAL.dds", NULL, &DeadpoolNORMShaderView);
+	CreateDDSTextureFromFile(g_pd3dDevice, L"BrickWall_NORMAL.dds", NULL, &FloorNORMShaderView);
+	CreateDDSTextureFromFile(g_pd3dDevice, L"DeadpoolSword_Normal.dds", NULL, &SwordNORMShaderView);
 #pragma endregion
 
 #pragma region Sampler
@@ -657,6 +818,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #endif
 
 #pragma endregion
+
 	TimeWizard.Restart();
 
 }
@@ -1034,7 +1196,6 @@ bool DEMO_APP::Run()
 
 #pragma endregion
 
-
 #pragma region DrawingSword
 
 	translating.Translate = XMMatrixTranslation(-3, 3, 0);
@@ -1054,6 +1215,7 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->VSSetShader(DirectVertShader[0], NULL, NULL);
 	g_pd3dDeviceContext->PSSetShader(DirectPixShader[0], NULL, NULL);
 	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &SwordShaderView);
+	g_pd3dDeviceContext->PSSetShaderResources(2, 1, &SwordNORMShaderView);
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferSword, &stride, &offsets);
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferSword, DXGI_FORMAT_R32_UINT, 0);
 
@@ -1081,6 +1243,7 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->VSSetShader(DirectVertShader[0], NULL, NULL);
 	g_pd3dDeviceContext->PSSetShader(DirectPixShader[0], NULL, NULL);
 	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &DeadpoolShaderView);
+	g_pd3dDeviceContext->PSSetShaderResources(2, 1, &DeadpoolNORMShaderView);
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferDeadpool, &stride, &offsets);
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferDeadpool, DXGI_FORMAT_R32_UINT, 0);
 	
@@ -1103,6 +1266,8 @@ bool DEMO_APP::Run()
 #pragma region Drawing Floor
 
 	g_pd3dDeviceContext->PSSetShaderResources(1, 1, &FloorShaderView);
+	g_pd3dDeviceContext->PSSetShaderResources(2, 1, &FloorNORMShaderView);
+
 	stride = sizeof(VERTEX);
 	VRAMPixelShader.whichTexture = 1;
 
@@ -1178,8 +1343,11 @@ void DEMO_APP::Clean3d()
 	sampleTexture->Release();
 	SkyBoxShaderView->Release();
 	FloorShaderView->Release();
+	FloorNORMShaderView->Release();
 	SwordShaderView->Release();
+	SwordNORMShaderView->Release();
 	DeadpoolShaderView->Release();
+	DeadpoolNORMShaderView->Release();
 
 	BlendState->Release();
 }

@@ -7,6 +7,8 @@ struct INPUT_VERTEX
 	float4 pos : POSITION;
 	float3 uv : UV;
 	float3 normal : NORMALS;
+	float3 Tangent : TANGENT;
+	float3 BiTangent : BITANGENT;
 };
 
 struct OUTPUT_VERTEX
@@ -15,6 +17,8 @@ struct OUTPUT_VERTEX
 	float3 uvOUT : UV;
 	float3 normalOUT: NORMALS;
 	float3 posW : POSITIONW;
+	float3 outTangent : TANGENT;
+	float3 outBiTangent : BITANGENT;
 };
 
 // TODO: PART 3 STEP 2a
@@ -43,10 +47,10 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 	sendToRasterizer.projectedCoordinate.w = 1;
 
 	float4x4 scales = float4x4( Scale,0.0f, 0.0f, 0.0f,
-		0.0f,Scale,0.0f,0.0f,
-	0.0f,0.0f,Scale,0.0f,
-		0.0f,0.0f,0.0f,1.0f
-	);
+								0.0f,Scale,0.0f,0.0f,
+								0.0f,0.0f,Scale,0.0f,
+								0.0f,0.0f,0.0f,1.0f
+													);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, scales);
 	
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Rotation);
@@ -60,5 +64,6 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 	sendToRasterizer.uvOUT = fromVertexBuffer.uv;
 	sendToRasterizer.uvOUT.z = 0;
 	sendToRasterizer.normalOUT = mul(fromVertexBuffer.normal, (float3x3)worldMatrix);
+	sendToRasterizer.outTangent = mul(fromVertexBuffer.Tangent, (float3x3)worldMatrix);
 	return sendToRasterizer;
 }
