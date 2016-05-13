@@ -107,7 +107,7 @@ float4 main( INPUT_PIXEL colorFromRasterizer ) : SV_TARGET
 
 	finalColor.xyz += DirectionalLightCalc(list[0], newNormal);
 	finalColor.xyz += PNTLightCalc(list[1], newNormal, colorFromRasterizer.posW);
-	finalColor.xyz += SPOTLightCalc(list[2], newNormal, colorFromRasterizer.posW);
+	//finalColor.xyz += SPOTLightCalc(list[2], newNormal, colorFromRasterizer.posW);
 
 	finalColor.xyz *= color.xyz;
 	finalColor.w = color.w;

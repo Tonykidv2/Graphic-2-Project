@@ -613,7 +613,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	for (unsigned int i = 0; i < vert_indices.size(); i++)
 	{
 		lightSource[i].XYZW = verts[vert_indices[i]];
-		lightSource[i].RGBA = XMFLOAT4(1.0f, 0.001f, 1.0f, 1.0f);
+		lightSource[i].RGBA = XMFLOAT4(0.001f, 0.75f, 0.40f, 1.0f);
 		lightSourceIndices[i] = i;
 	}
 
@@ -870,18 +870,18 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//Directional Light
 	Lights[0].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1);
 	Lights[0].Direction		= XMFLOAT4(0.0f, -1.0f, 1.0f, 0.0f);
-	Lights[0].Color			= XMFLOAT4(.72f, .72f, .72f, 1.0f);
+	Lights[0].Color			= XMFLOAT4(0.001f, 0.1f, .8f, 1.0f);
 	Lights[0].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	//Point Light
 	Lights[1].Position		= XMFLOAT4(-1.0f, 1.0f, 0.0f, 1.0f);
 	Lights[1].Direction		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	Lights[1].Color			= XMFLOAT4(1.0f, 0.001f, 1.0f, 1.0f);
+	Lights[1].Color			= XMFLOAT4(0.001f, .75f, .40f, 1.0f);
 	Lights[1].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 20.0f);
 	//Spot Light
 	Lights[2].Position		= XMFLOAT4(3.0f, 1.0f, 0.0, 1.0f);
 	Lights[2].Direction		= XMFLOAT4(0.0, -1.0f, .7f, 0.0f);
 	Lights[2].Color			= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	Lights[2].Radius		= XMFLOAT4(100.0f, 1.0f, 99.9f, 0.9f); //x = radius y = inner z = outer
+	Lights[2].Radius		= XMFLOAT4(100.0f, 0.95f, 0.9f, .9f); //x = radius y = inner z = outer
 	//Ambient Light
 	Lights[3].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 	Lights[3].Direction		= XMFLOAT4(0.0, -1.0f, 1.0f, 0.0f);
@@ -1451,12 +1451,6 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->RSSetState(SkyBoxRasterState);
 	g_pd3dDeviceContext->DrawIndexed(PlaneIndexCount, 0, 0);
 #pragma endregion
-
-
-	stride = sizeof(VERTEX);
-	offsets = 0;
-	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
-
 
 	g_pSwapChain->Present(0, 0);
 
