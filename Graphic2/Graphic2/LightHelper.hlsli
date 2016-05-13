@@ -225,7 +225,7 @@ float3 SPOTLightCalc(Lights light, float3 surface_normal, float3 pos)
 	//float att = 1.0 - saturate(length(light.Position - pos) / light.radius.x);
 	float attt = 1.0 - saturate((light.radius.y - SurfaceRatio) / (light.radius.y - light.radius.z));
 
-	return SpotFactor * dirLightRatio * light.Color.xyz *attt * attt;
+	return SpotFactor * dirLightRatio * light.Color.xyz * attt * attt;
 }
 
 float3 NormalCalcFunc(float3 Map, float3 tangent, float3 normal)

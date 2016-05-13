@@ -105,9 +105,12 @@ float4 main( INPUT_PIXEL colorFromRasterizer ) : SV_TARGET
 	if (WhichTexture == 2)
 		newNormal = colorFromRasterizer.normal;
 
-	finalColor.xyz += DirectionalLightCalc(list[0], newNormal);
-	finalColor.xyz += PNTLightCalc(list[1], newNormal, colorFromRasterizer.posW);
-	//finalColor.xyz += SPOTLightCalc(list[2], newNormal, colorFromRasterizer.posW);
+	if(list[0].radius.x == 1)
+		finalColor.xyz += DirectionalLightCalc(list[0], newNormal);
+	if (list[1].radius.x == 1)
+		finalColor.xyz += PNTLightCalc(list[1], newNormal, colorFromRasterizer.posW);
+	if (list[2].radius.x == 1)
+		finalColor.xyz += SPOTLightCalc(list[2], newNormal, colorFromRasterizer.posW);
 
 	finalColor.xyz *= color.xyz;
 	finalColor.w = color.w;

@@ -871,17 +871,17 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	Lights[0].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1);
 	Lights[0].Direction		= XMFLOAT4(0.0f, -1.0f, 1.0f, 0.0f);
 	Lights[0].Color			= XMFLOAT4(0.001f, 0.1f, .8f, 1.0f);
-	Lights[0].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	Lights[0].Radius		= XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
 	//Point Light
 	Lights[1].Position		= XMFLOAT4(-1.0f, 1.0f, 0.0f, 1.0f);
 	Lights[1].Direction		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	Lights[1].Color			= XMFLOAT4(0.001f, .75f, .40f, 1.0f);
-	Lights[1].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 20.0f);
+	Lights[1].Radius		= XMFLOAT4(1.0f, 0.0f, 0.0f, 20.0f);
 	//Spot Light
 	Lights[2].Position		= XMFLOAT4(3.0f, 1.0f, 0.0, 1.0f);
 	Lights[2].Direction		= XMFLOAT4(0.0, -1.0f, .7f, 0.0f);
 	Lights[2].Color			= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	Lights[2].Radius		= XMFLOAT4(100.0f, 0.95f, 0.9f, .9f); //x = radius y = inner z = outer
+	Lights[2].Radius		= XMFLOAT4(1.0f, 0.95f, 0.9f, .9f); //w = radius y = inner z = outer
 	//Ambient Light
 	Lights[3].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 	Lights[3].Direction		= XMFLOAT4(0.0, -1.0f, 1.0f, 0.0f);
@@ -1058,11 +1058,11 @@ bool DEMO_APP::Run()
 		}
 #endif
 #if !USINGOLDLIGHTCODE
-		if (GetAsyncKeyState('Z'))
+		if (GetAsyncKeyState('X'))
 		{
 			Lights[1].Position.x += (float)TimeWizard.SmoothDelta();
 		}
-		if (GetAsyncKeyState('X'))
+		if (GetAsyncKeyState('Z'))
 		{
 			Lights[1].Position.x -= (float)TimeWizard.SmoothDelta();
 		}
@@ -1113,6 +1113,28 @@ bool DEMO_APP::Run()
 			Lights[0].Direction.x += (float)TimeWizard.SmoothDelta();
 			if (Lights[0].Direction.x >= 1.0f)
 				Lights[0].Direction.x = 1.0f;
+		}
+
+		if (GetAsyncKeyState('1') & 0x1)
+		{
+			if (Lights[0].Radius.x == 0)
+				Lights[0].Radius.x = 1;
+			else
+				Lights[0].Radius.x = 0;
+		}
+		if (GetAsyncKeyState('2') & 0x1)
+		{
+			if (Lights[1].Radius.x == 0)
+				Lights[1].Radius.x = 1;
+			else
+				Lights[1].Radius.x = 0;
+		}
+		if (GetAsyncKeyState('3') & 0x1)
+		{
+			if (Lights[2].Radius.x == 0)
+				Lights[2].Radius.x = 1;
+			else
+				Lights[2].Radius.x = 0;
 		}
 #endif
 #pragma endregion 
