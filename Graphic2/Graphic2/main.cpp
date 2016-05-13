@@ -870,7 +870,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//Directional Light
 	Lights[0].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1);
 	Lights[0].Direction		= XMFLOAT4(0.0f, -1.0f, 1.0f, 0.0f);
-	Lights[0].Color			= XMFLOAT4(0.001f, 0.1f, .8f, 1.0f);
+	Lights[0].Color			= XMFLOAT4(0.8f, 0.8f, .8f, 1.0f);
 	Lights[0].Radius		= XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
 	//Point Light
 	Lights[1].Position		= XMFLOAT4(-1.0f, 1.0f, 0.0f, 1.0f);
