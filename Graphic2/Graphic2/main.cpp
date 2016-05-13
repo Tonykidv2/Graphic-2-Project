@@ -15,6 +15,8 @@
 #include "Trivial_PS.csh"
 #include "PixelShader.csh"
 #include "VertexShader.csh"
+#include "Geo_GS.csh"
+#include "Geo_VS.csh"
 
 
 
@@ -55,7 +57,8 @@ class DEMO_APP
 	ID3D11Buffer*					IndexBufferSword;
 	ID3D11Buffer*					VertexBufferDeadpool;
 	ID3D11Buffer*					IndexBufferDeadpool;
-
+	ID3D11Buffer*					VertexBufferSource;
+	ID3D11Buffer*					IndexBufferSource;
 
 	//Shaders
 	ID3D11VertexShader*				DirectVertShader[2];
@@ -84,11 +87,21 @@ class DEMO_APP
 	//Blend States
 	ID3D11BlendState*				BlendState;
 
+	//Geometry Shader
+	ID3D11Buffer*					VertexBufferGeo;
+	ID3D11VertexShader*				VertexShaderGeo;
+	ID3D11GeometryShader*			GeometryShaderGeo;
+	ID3D11PixelShader*				PixelShaderGeo;
+	XMMATRIX						GeoMatrix;
+	ID3D11ShaderResourceView*		ShaderResourceViewGeo;
+
+
 	unsigned int SkyBoxIndexCount;
 	unsigned int PlaneIndexCount;
 	unsigned int StarIndexCount;
 	unsigned int SwordIndexCount;
 	unsigned int DeadpoolIndexCount;
+	unsigned int SourceIndexCount;
 
 	void init3D(HWND hWnd);
 	void Clean3d();
@@ -263,9 +276,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		plane[i + 1].Tangent = tangent;
 		plane[i + 2].Tangent = tangent;
 
-		plane[i + 0].BiTangent = tangent;
-		plane[i + 1].BiTangent = tangent;
-		plane[i + 2].BiTangent = tangent;
+		plane[i + 0].BiTangent = bitangent;
+		plane[i + 1].BiTangent = bitangent;
+		plane[i + 2].BiTangent = bitangent;
 	}
 
 #pragma region VertexBuffer for Floor
@@ -590,6 +603,60 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	uvs_indices.clear();
 	norm_indices.clear();
 
+#pragma region creating LightSource
+	LoadModel::LoadObj("LightSource.obj", verts, uvs, norms,
+		vert_indices, uvs_indices, norm_indices);
+
+	SIMPLE_VERTEX* lightSource = new SIMPLE_VERTEX[vert_indices.size()];
+	unsigned int* lightSourceIndices = new unsigned int[vert_indices.size()];
+
+	for (unsigned int i = 0; i < vert_indices.size(); i++)
+	{
+		lightSource[i].XYZW = verts[vert_indices[i]];
+		lightSource[i].RGBA = XMFLOAT4(1.0f, 0.001f, 1.0f, 1.0f);
+		lightSourceIndices[i] = i;
+	}
+
+#pragma region VertexBuffer for LightSource
+	D3D11_BUFFER_DESC LightSourcebufferDesc;
+	ZeroMemory(&LightSourcebufferDesc, sizeof(LightSourcebufferDesc));
+	LightSourcebufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	LightSourcebufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	LightSourcebufferDesc.ByteWidth = sizeof(SIMPLE_VERTEX) * vert_indices.size();
+
+	D3D11_SUBRESOURCE_DATA sub_data_LightSource;
+	ZeroMemory(&sub_data_LightSource, sizeof(sub_data_LightSource));
+	sub_data_LightSource.pSysMem = lightSource;
+	g_pd3dDevice->CreateBuffer(&LightSourcebufferDesc, &sub_data_LightSource, &VertexBufferSource);
+#pragma endregion
+
+#pragma region IndexBuffer for LightSource
+	D3D11_BUFFER_DESC indexBuffDesc_LightSource;
+	ZeroMemory(&indexBuffDesc_LightSource, sizeof(indexBuffDesc_LightSource));
+	indexBuffDesc_LightSource.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBuffDesc_LightSource.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBuffDesc_LightSource.ByteWidth = sizeof(unsigned int) * vert_indices.size();
+
+	D3D11_SUBRESOURCE_DATA indexData_LightSource;
+	ZeroMemory(&indexData_LightSource, sizeof(indexData_LightSource));
+	indexData_LightSource.pSysMem = lightSourceIndices;
+	g_pd3dDevice->CreateBuffer(&indexBuffDesc_LightSource, &indexData_LightSource, &IndexBufferSource);
+
+#pragma endregion
+
+	SourceIndexCount = vert_indices.size();
+	delete[] lightSource;
+	delete[] lightSourceIndices;
+
+#pragma endregion
+
+	verts.clear();
+	uvs.clear();
+	norms.clear();
+	vert_indices.clear();
+	uvs_indices.clear();
+	norm_indices.clear();
+
 #pragma region VertexBuffer for Star
 	D3D11_BUFFER_DESC StarbufferDesc;
 	ZeroMemory(&StarbufferDesc, sizeof(StarbufferDesc));
@@ -621,6 +688,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	g_pd3dDevice->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &DirectPixShader[0]);
 	g_pd3dDevice->CreateVertexShader(VertexShader, sizeof(VertexShader), NULL, &DirectVertShader[1]);
 	g_pd3dDevice->CreatePixelShader(PixelShader, sizeof(PixelShader), NULL, &DirectPixShader[1]);
+
+	g_pd3dDevice->CreateVertexShader(Geo_VS, sizeof(Geo_VS), NULL, &VertexShaderGeo);
+	g_pd3dDevice->CreateGeometryShader(Geo_GS, sizeof(Geo_GS), NULL, &GeometryShaderGeo);
 
 	D3D11_INPUT_ELEMENT_DESC LayoutComplex[] =
 	{
@@ -800,17 +870,17 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//Directional Light
 	Lights[0].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1);
 	Lights[0].Direction		= XMFLOAT4(0.0f, -1.0f, 1.0f, 0.0f);
-	Lights[0].Color			= XMFLOAT4(.5f, .5f, .5f, 1.0f);
+	Lights[0].Color			= XMFLOAT4(.72f, .72f, .72f, 1.0f);
 	Lights[0].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	//Point Light
 	Lights[1].Position		= XMFLOAT4(-1.0f, 1.0f, 0.0f, 1.0f);
 	Lights[1].Direction		= XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	Lights[1].Color			= XMFLOAT4(1.0f, 0.001f, 1.0f, 1.0f);
-	Lights[1].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 5.0f);
+	Lights[1].Radius		= XMFLOAT4(0.0f, 0.0f, 0.0f, 20.0f);
 	//Spot Light
 	Lights[2].Position		= XMFLOAT4(3.0f, 1.0f, 0.0, 1.0f);
 	Lights[2].Direction		= XMFLOAT4(0.0, -1.0f, .7f, 0.0f);
-	Lights[2].Color			= XMFLOAT4(0.001f, 0.001f, 1.0f, 1.0f);
+	Lights[2].Color			= XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	Lights[2].Radius		= XMFLOAT4(100.0f, 1.0f, 99.9f, 0.9f); //x = radius y = inner z = outer
 	//Ambient Light
 	Lights[3].Position		= XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -820,6 +890,29 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #endif
 
 #pragma endregion
+
+#pragma region geometry Shader
+	//Geometry Shader
+
+	VERTEX Geo_Vert[1];
+	Geo_Vert[0].XYZW = XMFLOAT4(0, 0, 0, 1);
+	Geo_Vert[0].UV = XMFLOAT3(0, 0, 0);
+	Geo_Vert[0].normals = XMFLOAT3(0, 0, 0);
+
+	D3D11_BUFFER_DESC GeobufferDesc;
+	ZeroMemory(&GeobufferDesc, sizeof(GeobufferDesc));
+	GeobufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	GeobufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	GeobufferDesc.ByteWidth = sizeof(VERTEX);
+
+	D3D11_SUBRESOURCE_DATA Geo_data;
+	ZeroMemory(&Geo_data, sizeof(Geo_data));
+	Geo_data.pSysMem = &Geo_Vert;
+	g_pd3dDevice->CreateBuffer(&GeobufferDesc, &Geo_data, &VertexBufferGeo);
+
+	
+
+#pragma endregion	
 
 	TimeWizard.Restart();
 
@@ -917,7 +1010,7 @@ bool DEMO_APP::Run()
 	
 	g_pd3dDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_StencilView);
 	g_pd3dDeviceContext->RSSetViewports(1, &g_DirectView);
-
+	WorldShader.ScreenHeight = g_DirectView.Height;
 	float temp[4] = { 0.0f, 0.1f, 0.3f, 1.0f };
 	g_pd3dDeviceContext->ClearRenderTargetView(g_pRenderTargetView, temp);
 	g_pd3dDeviceContext->ClearDepthStencilView(g_StencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -997,6 +1090,30 @@ bool DEMO_APP::Run()
 			Lights[1].Position.z = 0;
 		}
 		
+		if (GetAsyncKeyState(VK_NUMPAD8))
+		{
+			Lights[0].Direction.z -= (float)TimeWizard.SmoothDelta();
+			if (Lights[0].Direction.z <= -1.0f)
+				Lights[0].Direction.z= -1.0f;
+		}
+		if (GetAsyncKeyState(VK_NUMPAD2))
+		{
+			Lights[0].Direction.z += (float)TimeWizard.SmoothDelta();
+			if (Lights[0].Direction.z >= 1.0f)
+				Lights[0].Direction.z = 1.0f;
+		}
+		if (GetAsyncKeyState(VK_NUMPAD4))
+		{
+			Lights[0].Direction.x -= (float)TimeWizard.SmoothDelta();
+			if (Lights[0].Direction.x <= -1.0f)
+				Lights[0].Direction.x = -1.0f;
+		}
+		if (GetAsyncKeyState(VK_NUMPAD6))
+		{
+			Lights[0].Direction.x += (float)TimeWizard.SmoothDelta();
+			if (Lights[0].Direction.x >= 1.0f)
+				Lights[0].Direction.x = 1.0f;
+		}
 #endif
 #pragma endregion 
 
@@ -1213,6 +1330,28 @@ bool DEMO_APP::Run()
 
 #pragma endregion
 
+#pragma region Drawing light Source
+
+	
+	translating.Translate = XMMatrixTranslation(Lights[1].Position.x, Lights[1].Position.y, Lights[1].Position.z);
+	translating.Scale = .1f;
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferSource, &stride, &offsets);
+	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferSource, DXGI_FORMAT_R32_UINT, 0);
+
+	g_pd3dDeviceContext->DrawIndexed(SourceIndexCount, 0, 0);
+
+	translating.Translate = XMMatrixTranslation(0, 0, 0);
+
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+#pragma endregion
+
 #pragma region DrawingSword
 
 	translating.Translate = XMMatrixTranslation(-3, 3, 0);
@@ -1246,7 +1385,7 @@ bool DEMO_APP::Run()
 
 	translating.Translate = XMMatrixTranslation(0, 0, 0);
 	translating.Scale = .3f;
-	WorldShader.worldMatrix = XMMatrixRotationY(timer * .5f);
+	WorldShader.worldMatrix = XMMatrixRotationY(timer * 0.5f);
 	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
@@ -1314,6 +1453,11 @@ bool DEMO_APP::Run()
 #pragma endregion
 
 
+	stride = sizeof(VERTEX);
+	offsets = 0;
+	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
+
+
 	g_pSwapChain->Present(0, 0);
 
 	return true; 
@@ -1352,6 +1496,8 @@ void DEMO_APP::Clean3d()
 	IndexBufferSword->Release();
 	VertexBufferDeadpool->Release();
 	IndexBufferDeadpool->Release();
+	VertexBufferSource->Release();
+	IndexBufferSource->Release();
 
 	DirectVertShader[0]->Release();
 	DirectPixShader[0]->Release();
@@ -1377,6 +1523,10 @@ void DEMO_APP::Clean3d()
 	DeadpoolNORMShaderView->Release();
 
 	BlendState->Release();
+
+	VertexBufferGeo->Release();
+	VertexShaderGeo->Release();
+	GeometryShaderGeo->Release();
 }
 
 //************************************************************

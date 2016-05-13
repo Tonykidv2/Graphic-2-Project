@@ -234,13 +234,16 @@ float3 NormalCalcFunc(float3 Map, float3 tangent, float3 normal)
 	float3 NormalT = 2.0f * Map - 1.0f;
 
 	//Building NTB 
-	float3 N = normal;
-	float3 T = normalize(tangent - dot(tangent, N) * N);
-	float3 B = cross(N, T);
+	float3 N = normalize(normal);
+	float3 T = normalize(tangent/* - dot(tangent, N) * N*/);
+	float3 B = normalize(cross(N, T));
 
-	float3x3 TBN = float3x3(T, B, N);
+	float3x3 TBN;// = float3x3(T, B, N);
+	TBN[0] = T;
+	TBN[1] = B;
+	TBN[2] = N;
 
-	float finalColor = mul(NormalT, TBN);
+	float3 finalColor = mul(NormalT, TBN);
 
 	return finalColor;
 

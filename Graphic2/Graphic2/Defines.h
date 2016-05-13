@@ -36,6 +36,8 @@ struct SEND_TO_VRAM_WORLD
 	XMMATRIX worldMatrix;
 	XMMATRIX viewMatrix;
 	XMMATRIX projectView;
+	float ScreenHeight;
+	XMFLOAT3 padding;
 };
 
 struct SEND_TO_VRAM_PIXEL

@@ -9,6 +9,15 @@ struct INPUT_PIXEL
 	float3 posW : POSITIONW;
 	float3 Tangent : TANGENT;
 	float3 BiTangent : BITANGENT;
+	float2 TexCoord1 : TEXCOORD1;
+	float2 TexCoord2 : TEXCOORD2;
+	float2 TexCoord3 : TEXCOORD3;
+	float2 TexCoord4 : TEXCOORD4;
+	float2 TexCoord5 : TEXCOORD5;
+	float2 TexCoord6 : TEXCOORD6;
+	float2 TexCoord7 : TEXCOORD7;
+	float2 TexCoord8 : TEXCOORD8;
+	float2 TexCoord9 : TEXCOORD9;
 };
 
 TextureCube TEXTURE : register(t0);
@@ -56,22 +65,53 @@ float4 main( INPUT_PIXEL colorFromRasterizer ) : SV_TARGET
 	{
 		color = Texture1.Sample(FILTER, colorFromRasterizer.uv).rgba;
 		ColorNorm = TextureNorm.Sample(FILTER, colorFromRasterizer.uv).rgb;
-		color.xyz += NormalCalcFunc(ColorNorm, colorFromRasterizer.Tangent , colorFromRasterizer.normal);
 	}
+
+	float3 newNormal = NormalCalcFunc(ColorNorm, colorFromRasterizer.Tangent , colorFromRasterizer.normal);
 
 	if (WhichTexture == 2)
 		color = Texture1.Sample(FILTER, colorFromRasterizer.uv).rgba;
 
+	//float weight0, weight1, weight2, weight3, weight4;
+	//float normalization;
+	//
+	//weight0 = 1.0f;
+	//weight1 = 0.9f;
+	//weight2 = 0.55f;
+	//weight3 = 0.18f;
+	//weight4 = 0.1f;
+	//
+	//normalization = (weight0 + 2.0f *(weight1 + weight2 + weight3 + weight4));
+	//
+	//weight0 /= normalization;
+	//weight1	/= normalization;
+	//weight2	/= normalization;
+	//weight3	/= normalization;
+	//weight4	/= normalization;
+	//
+	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord1) * weight4;
+	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord2) * weight3;
+	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord3) * weight2;
+	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord4) * weight1;
+	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord5) * weight0;
+	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord6) * weight1;
+	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord7) * weight2;
+	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord8) * weight3;
+	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord9) * weight4;
 
 	float4 finalColor = float4(0, 0, 0, 1);
-#if !USINGOLDLIGHTCODE
 
-	finalColor.xyz += DirectionalLightCalc(list[0], colorFromRasterizer.normal);
-	finalColor.xyz += PNTLightCalc(list[1], colorFromRasterizer.normal, colorFromRasterizer.posW);
-	finalColor.xyz += SPOTLightCalc(list[2], colorFromRasterizer.normal, colorFromRasterizer.posW);
+#if !USINGOLDLIGHTCODE
+	if (WhichTexture == 2)
+		newNormal = colorFromRasterizer.normal;
+
+	finalColor.xyz += DirectionalLightCalc(list[0], newNormal);
+	finalColor.xyz += PNTLightCalc(list[1], newNormal, colorFromRasterizer.posW);
+	finalColor.xyz += SPOTLightCalc(list[2], newNormal, colorFromRasterizer.posW);
 
 	finalColor.xyz *= color.xyz;
 	finalColor.w = color.w;
+
 
 #endif	
 
