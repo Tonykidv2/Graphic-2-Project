@@ -9,15 +9,6 @@ struct INPUT_PIXEL
 	float3 posW : POSITIONW;
 	float3 Tangent : TANGENT;
 	float3 BiTangent : BITANGENT;
-	float2 TexCoord1 : TEXCOORD1;
-	float2 TexCoord2 : TEXCOORD2;
-	float2 TexCoord3 : TEXCOORD3;
-	float2 TexCoord4 : TEXCOORD4;
-	float2 TexCoord5 : TEXCOORD5;
-	float2 TexCoord6 : TEXCOORD6;
-	float2 TexCoord7 : TEXCOORD7;
-	float2 TexCoord8 : TEXCOORD8;
-	float2 TexCoord9 : TEXCOORD9;
 };
 
 TextureCube TEXTURE : register(t0);

@@ -89,3 +89,8 @@ struct SIMPLE_VERTEX
 	XMFLOAT4 RGBA;
 	XMFLOAT3 Norm;
 };
+
+struct Instance
+{
+	XMMATRIX WorldLocation;
+};
