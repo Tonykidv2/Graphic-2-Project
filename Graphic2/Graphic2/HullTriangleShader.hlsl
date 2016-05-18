@@ -4,6 +4,8 @@ struct VS_CONTROL_POINT_OUTPUT
 	float3 pos : POSITON;
 	float3 norm : NORMAL;
 	float3 uv : UV;
+	float3 Tangent : TANGENT;
+	float3 BiTangent : BITANGENT;
 };
 
 // Output control point
@@ -12,6 +14,8 @@ struct HS_CONTROL_POINT_OUTPUT
 	float3 pos : POSITON;
 	float3 norm : NORMAL;
 	float3 uv : UV;
+	float3 Tangent : TANGENT;
+	float3 BiTangent : BITANGENT;
 };
 
 // Output patch constant data.
@@ -41,7 +45,7 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 	Output.EdgeTessFactor[0] = 
 	Output.EdgeTessFactor[1] = 
 	Output.EdgeTessFactor[2] = 
-	Output.InsideTessFactor = 15; // e.g. could calculate dynamic tessellation factors instead
+	Output.InsideTessFactor = size.x; // e.g. could calculate dynamic tessellation factors instead
 
 	return Output;
 }
@@ -62,6 +66,7 @@ HS_CONTROL_POINT_OUTPUT main(
 	Output.pos = ip[i].pos;
 	Output.norm = ip[i].norm;
 	Output.uv = ip[i].uv;
+	Output.Tangent = ip[i].Tangent;
 
 	return Output;
 }

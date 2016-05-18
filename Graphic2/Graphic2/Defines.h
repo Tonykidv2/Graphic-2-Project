@@ -94,3 +94,8 @@ struct Instance
 {
 	XMMATRIX WorldLocation;
 };
+
+struct Scaling
+{
+	XMFLOAT4 scale;
+};

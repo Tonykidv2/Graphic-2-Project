@@ -51,8 +51,8 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 	float4x4 scales = float4x4( Scale,0.0f, 0.0f, 0.0f,
 								0.0f,Scale,0.0f,0.0f,
 								0.0f,0.0f,Scale,0.0f,
-								0.0f,0.0f,0.0f,1.0f
-													);
+								0.0f,0.0f,0.0f,1.0f);
+
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, scales);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Rotation);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Translate);
@@ -68,16 +68,6 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 
 	sendToRasterizer.normalOUT = mul(normalize(fromVertexBuffer.normal), (float3x3)worldMatrix);
 	sendToRasterizer.outTangent = mul(normalize(fromVertexBuffer.Tangent), (float3x3)worldMatrix);
-	//sendToRasterizer.outBiTangent = mul(fromVertexBuffer.BiTangent, (float3x3)worldMatrix);
-	//float texelSize = 1.0 / ScreenHeight;
-	//sendToRasterizer.TexCoord1 = fromVertexBuffer.uv + float2(0.0f, texelSize * -4.0f);
-	//sendToRasterizer.TexCoord2 = fromVertexBuffer.uv + float2(0.0f, texelSize * -3.0f);
-	//sendToRasterizer.TexCoord3 = fromVertexBuffer.uv + float2(0.0f, texelSize * -2.0f);
-	//sendToRasterizer.TexCoord4 = fromVertexBuffer.uv + float2(0.0f, texelSize * -1.0f);
-	//sendToRasterizer.TexCoord5 = fromVertexBuffer.uv + float2(0.0f, texelSize * 0.0f);
-	//sendToRasterizer.TexCoord6 = fromVertexBuffer.uv + float2(0.0f, texelSize * 1.0f);
-	//sendToRasterizer.TexCoord7 = fromVertexBuffer.uv + float2(0.0f, texelSize * 2.0f);
-	//sendToRasterizer.TexCoord8 = fromVertexBuffer.uv + float2(0.0f, texelSize * 3.0f);
-	//sendToRasterizer.TexCoord9 = fromVertexBuffer.uv + float2(0.0f, texelSize * 4.0f);
+	
 	return sendToRasterizer;
 }

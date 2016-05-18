@@ -6,6 +6,8 @@ struct DS_OUTPUT
 	float3 wPosition : WorldPOS;
 	float3 norm : NORMAL;
 	float3 uv : UV;
+	float3 Tangent : TANGENT;
+	float3 BiTangent : BITANGENT;
 	// TODO: change/add other stuff
 };
 
@@ -15,6 +17,8 @@ struct HS_CONTROL_POINT_OUTPUT
 	float3 pos : POSITON;
 	float3 norm : NORMAL;
 	float3 uv : UV;
+	float3 Tangent : TANGENT;
+	float3 BiTangent : BITANGENT;
 };
 
 // Output patch constant data.
@@ -69,11 +73,18 @@ DS_OUTPUT main(
 		patch[1].uv * domain.y + 
 		patch[2].uv * domain.z);
 
+	Output.Tangent = float3(
+		patch[0].Tangent * domain.x +
+		patch[1].Tangent * domain.y +
+		patch[2].Tangent * domain.z);
+
 	Output.vPosition = mul(Output.vPosition, worldMatrix);
 	Output.vPosition = mul(Output.vPosition, viewMatrix);
 	Output.vPosition = mul(Output.vPosition, projectionMatrix);
 
 	Output.norm = mul(float4(Output.norm, 0), worldMatrix);
+	Output.Tangent = mul(float4(Output.norm, 0), worldMatrix);
 
 	return Output;
+
 }

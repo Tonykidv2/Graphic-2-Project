@@ -115,8 +115,10 @@ class DEMO_APP
 	ID3D11HullShader*				hullShaderTriangle;
 	ID3D11DomainShader*				domainShaderTriangle;
 	Instance						TriangleMatrix;
+	Scaling							TesselScale;
 	ID3D11RasterizerState*			RasterStateWireFrameTriangle;
 	ID3D11RasterizerState*			RasterStateSoildTriangle;
+	ID3D11Buffer*					CostantBufferTessScale;
 
 	unsigned int SkyBoxIndexCount;
 	unsigned int PlaneIndexCount;
@@ -211,6 +213,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	g_ScreenChanged = false;
 	g_Minimized = false;
 	ToggleBumpMap = true;
+	ZeroMemory(&TesselScale, sizeof(TesselScale));
+	TesselScale.scale.x = 15.0f;
+
 #pragma endregion
 
 #pragma region Creating Star Shape
@@ -794,6 +799,14 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InstanceDesc.ByteWidth = sizeof(Instance) * 4;
 	InstanceDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	g_pd3dDevice->CreateBuffer(&InstanceDesc, NULL, &InstanceCostantBuffer);
+
+	D3D11_BUFFER_DESC TesselDesc;
+	ZeroMemory(&TesselDesc, sizeof(TesselDesc));
+	TesselDesc.Usage = D3D11_USAGE_DYNAMIC;
+	TesselDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	TesselDesc.ByteWidth = sizeof(Scaling);
+	TesselDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	g_pd3dDevice->CreateBuffer(&TesselDesc, NULL, &CostantBufferTessScale);
 
 #pragma endregion
 
@@ -1513,12 +1526,20 @@ bool DEMO_APP::Run()
 	memcpy_s(InstanceSource.pData, sizeof(Instance) * 4, &list, sizeof(Instance) * 4);
 	g_pd3dDeviceContext->Unmap(InstanceCostantBuffer, 0);
 
+	//Sending new Scaling Data for Tessel Triangle
+	D3D11_MAPPED_SUBRESOURCE SizingTesselSource;
+	g_pd3dDeviceContext->Map(CostantBufferTessScale, 0, D3D11_MAP_WRITE_DISCARD, 0, &SizingTesselSource);
+	memcpy_s(SizingTesselSource.pData, sizeof(Scaling), &TesselScale, sizeof(Scaling));
+	g_pd3dDeviceContext->Unmap(CostantBufferTessScale, 0);
+
 	g_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &constantBuffer[0]);
 	g_pd3dDeviceContext->VSSetConstantBuffers(1, 1, &constantBuffer[1]);
 	g_pd3dDeviceContext->VSSetConstantBuffers(2, 1, &InstanceCostantBuffer);
 	g_pd3dDeviceContext->PSSetConstantBuffers(0, 1, &constantPixelBuffer);
 	g_pd3dDeviceContext->PSSetConstantBuffers(1, 1, &CostantBufferLights);
-
+	g_pd3dDeviceContext->DSSetConstantBuffers(0, 1, &constantBuffer[0]);
+	g_pd3dDeviceContext->DSSetConstantBuffers(1, 1, &constantBuffer[1]);
+	g_pd3dDeviceContext->HSSetConstantBuffers(0, 1, &CostantBufferTessScale);
 #pragma endregion
 
 	unsigned int stride = 0;
@@ -1761,12 +1782,28 @@ bool DEMO_APP::Run()
 
 #pragma region Drawing Tess. Triangle
 
-	//translating.Translate = XMMatrixTranslation(2, 1, 0);
+	translating.Translate = XMMatrixTranslation(3, 0, 0);
 	translating.Scale = 1;
 	//translating.Rotation = XMMatrixMultiply(XMMatrixRotationY(timer), translating.Rotation);
 	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+	if (GetAsyncKeyState(VK_SUBTRACT))
+	{
+		TesselScale.scale.x -= TimeWizard.Delta();
+		if (TesselScale.scale.x <= 1.0f)
+			TesselScale.scale.x = 1.0f;
+
+	}
+
+	if (GetAsyncKeyState(VK_ADD))
+	{
+		TesselScale.scale.x += TimeWizard.Delta();
+		if (TesselScale.scale.x >= 15.0f)
+			TesselScale.scale.x = 15.0f;
+
+	}
 
 	stride = sizeof(VERTEX);
 	offsets = 0;
@@ -1881,6 +1918,7 @@ void DEMO_APP::Clean3d()
 	TriangleMatrix;
 	RasterStateWireFrameTriangle->Release();
 	RasterStateSoildTriangle->Release();
+	CostantBufferTessScale->Release();
 }
 
 //************************************************************
