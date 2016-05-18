@@ -18,7 +18,10 @@
 #include "Geo_GS.csh"
 #include "Geo_VS.csh"
 #include "VertexShaderInstance.csh"
-
+#include "DomainTriangleShader.csh"
+#include "HullTriangleShader.csh"
+#include "VertexTriangleShader.csh"
+#include "PixelTriangleShader.csh"
 
 #define BACKBUFFER_WIDTH	1280.0f
 #define BACKBUFFER_HEIGHT	720.0f
@@ -99,12 +102,21 @@ class DEMO_APP
 
 	////Geometry Shader
 	//ID3D11Buffer*					VertexBufferGeo;
-	//ID3D11VertexShader*				VertexShaderGeo;
+	//ID3D11VertexShader*			VertexShaderGeo;
 	//ID3D11GeometryShader*			GeometryShaderGeo;
-	//ID3D11PixelShader*				PixelShaderGeo;
+	//ID3D11PixelShader*			PixelShaderGeo;
 	//XMMATRIX						GeoMatrix;
 	//ID3D11ShaderResourceView*		ShaderResourceViewGeo;
 
+	//tesselation
+	ID3D11Buffer*					vertexBufferTriangle;
+	ID3D11VertexShader*				vertexShaderTriangle;
+	ID3D11PixelShader*				pixelShaderTriangle;
+	ID3D11HullShader*				hullShaderTriangle;
+	ID3D11DomainShader*				domainShaderTriangle;
+	Instance						TriangleMatrix;
+	ID3D11RasterizerState*			RasterStateWireFrameTriangle;
+	ID3D11RasterizerState*			RasterStateSoildTriangle;
 
 	unsigned int SkyBoxIndexCount;
 	unsigned int PlaneIndexCount;
@@ -112,6 +124,7 @@ class DEMO_APP
 	unsigned int SwordIndexCount;
 	unsigned int DeadpoolIndexCount;
 	unsigned int SourceIndexCount;
+
 
 	void init3D(HWND hWnd);
 	void Clean3d();
@@ -710,6 +723,12 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//g_pd3dDevice->CreateGeometryShader(Geo_GS, sizeof(Geo_GS), NULL, &GeometryShaderGeo);
 	//g_pd3dDevice->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &DirectVertShader[0]);
 
+	g_pd3dDevice->CreateVertexShader(VertexTriangleShader, sizeof(VertexTriangleShader), NULL, &vertexShaderTriangle);
+	g_pd3dDevice->CreatePixelShader(PixelTriangleShader, sizeof(PixelTriangleShader), NULL, &pixelShaderTriangle);
+	g_pd3dDevice->CreateHullShader(HullTriangleShader, sizeof(HullTriangleShader), NULL, &hullShaderTriangle);
+	g_pd3dDevice->CreateDomainShader(DomainTriangleShader, sizeof(DomainTriangleShader), NULL, &domainShaderTriangle);
+
+
 	//Instance Shader
 	g_pd3dDevice->CreateVertexShader(VertexShaderInstance, sizeof(VertexShaderInstance), NULL, &DirectVertShader[2]);
 
@@ -969,6 +988,56 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	g_pd3dDevice->CreateBuffer(&instanceBufferDesc, &instanceData, &InstanceBuffer);
 	
 	CreateVertexIndexBufferModel(&DeadpoolInstanceVertexBuffer, &DeadpoolInstanceIndexBuffer, g_pd3dDevice, "DeadpoolInstance.obj", InstanceIndexCount);
+#pragma endregion
+
+#pragma region Tesselation
+
+	VERTEX Triangle_Vert[3];
+	Triangle_Vert[0].XYZW = XMFLOAT4(2.0f, 3.0f, 0.0f, 1.0f);
+	Triangle_Vert[0].UV = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	Triangle_Vert[0].normals = XMFLOAT3(0.0f, 0.0f, -1.0f);
+
+	Triangle_Vert[1].XYZW = XMFLOAT4(3.0f, 1.0f, 0.0f, 1.0f);
+	Triangle_Vert[1].UV = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	Triangle_Vert[1].normals = XMFLOAT3(0.0f, 0.0f, -1.0f);
+
+	Triangle_Vert[2].XYZW = XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f);
+	Triangle_Vert[2].UV = XMFLOAT3(1.0f, 0.5f, 0.0f);
+	Triangle_Vert[2].normals = XMFLOAT3(0.0f, 0.0f, -1.0f);
+
+
+	D3D11_BUFFER_DESC Desc;
+	ZeroMemory(&Desc, sizeof(Desc));
+	Desc.Usage = D3D11_USAGE_IMMUTABLE;
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	Desc.ByteWidth = sizeof(VERTEX) * 3;
+
+	D3D11_SUBRESOURCE_DATA data;
+	ZeroMemory(&data, sizeof(data));
+	data.pSysMem = Triangle_Vert;
+	g_pd3dDevice->CreateBuffer(&Desc, &data, &vertexBufferTriangle);
+
+	TriangleMatrix.WorldLocation = XMMatrixTranslation(0.0f, 0.0f, -2.0f);
+
+	ZeroMemory(&rasterDesc, sizeof(rasterDesc));
+	rasterDesc.AntialiasedLineEnable = false;
+	rasterDesc.CullMode = D3D11_CULL_NONE;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0;
+	rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.SlopeScaledDepthBias = 0;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.DepthClipEnable = true;
+
+	g_pd3dDevice->CreateRasterizerState(&rasterDesc, &RasterStateWireFrameTriangle);
+
+	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+
+	g_pd3dDevice->CreateRasterizerState(&rasterDesc, &RasterStateSoildTriangle);
+
 #pragma endregion
 
 	TimeWizard.Restart();
@@ -1665,12 +1734,6 @@ bool DEMO_APP::Run()
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
 	
-	//for (int i = 0; i < 4; i++)
-	//{
-	//	list[i].WorldLocation = XMMatrixMultiply(list[i].WorldLocation, XMMatrixRotationY(timer * 0.5f));
-	//	list[i].WorldLocation = XMMatrixMultiply(list[i].WorldLocation, XMMatrixScaling(0.3f, 0.3f, 0.3f));
-	//}
-	
 	stride = sizeof(VERTEX);
 	
 	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
@@ -1696,6 +1759,42 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->Unmap(constantBuffer[0], 0);
 #pragma endregion
 
+#pragma region Drawing Tess. Triangle
+
+	//translating.Translate = XMMatrixTranslation(2, 1, 0);
+	translating.Scale = 1;
+	//translating.Rotation = XMMatrixMultiply(XMMatrixRotationY(timer), translating.Rotation);
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+	stride = sizeof(VERTEX);
+	offsets = 0;
+
+	g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &vertexBufferTriangle, &stride, &offsets);
+	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
+	g_pd3dDeviceContext->VSSetShader(vertexShaderTriangle, NULL, NULL);
+	g_pd3dDeviceContext->PSSetShader(pixelShaderTriangle, NULL, NULL);
+	g_pd3dDeviceContext->HSSetShader(hullShaderTriangle, NULL, NULL);
+	g_pd3dDeviceContext->DSSetShader(domainShaderTriangle, NULL, NULL);
+	g_pd3dDeviceContext->RSSetState(RasterStateWireFrameTriangle);
+
+	g_pd3dDeviceContext->Draw(3, 0);
+	ID3D11HullShader* temp1 = nullptr;
+	ID3D11DomainShader* temp2 = nullptr;
+	g_pd3dDeviceContext->HSSetShader(temp1, NULL, NULL);
+	g_pd3dDeviceContext->DSSetShader(temp2, NULL, NULL);
+	g_pd3dDeviceContext->RSSetState(RasterStateSoildTriangle);
+
+	translating.Translate = XMMatrixTranslation(0, 0, 0);
+	translating.Scale = 1;
+	translating.Rotation = XMMatrixIdentity();
+	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
+	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
+	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+
+#pragma endregion
 	g_pSwapChain->Present(0, 0);
 
 	return true; 
@@ -1771,6 +1870,17 @@ void DEMO_APP::Clean3d()
 	InstanceCostantBuffer->Release();
 	DeadpoolInstanceIndexBuffer->Release();
 	DeadpoolInstanceVertexBuffer->Release();
+
+
+
+	vertexBufferTriangle->Release();
+	vertexShaderTriangle->Release();
+	pixelShaderTriangle->Release();
+	hullShaderTriangle->Release();
+	domainShaderTriangle->Release();
+	TriangleMatrix;
+	RasterStateWireFrameTriangle->Release();
+	RasterStateSoildTriangle->Release();
 }
 
 //************************************************************
