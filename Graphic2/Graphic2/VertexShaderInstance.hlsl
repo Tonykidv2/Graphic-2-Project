@@ -61,8 +61,8 @@ OUTPUT_VERTEX main(INPUT_VERTEX fromVertexBuffer, unsigned int id : SV_InstanceI
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Rotation);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, Translate);
 
-	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, world[id]);
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, worldMatrix);
+	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, world[id]);
 	sendToRasterizer.posW = sendToRasterizer.projectedCoordinate;
 
 	sendToRasterizer.projectedCoordinate = mul(sendToRasterizer.projectedCoordinate, viewMatrix);
@@ -71,8 +71,8 @@ OUTPUT_VERTEX main(INPUT_VERTEX fromVertexBuffer, unsigned int id : SV_InstanceI
 	sendToRasterizer.uvOUT = fromVertexBuffer.uv;
 	sendToRasterizer.uvOUT.z = 0;
 
-	sendToRasterizer.normalOUT = mul(normalize(fromVertexBuffer.normal), (float3x3)worldMatrix);
-	sendToRasterizer.outTangent = mul(normalize(fromVertexBuffer.Tangent), (float3x3)worldMatrix);
+	sendToRasterizer.normalOUT = mul(normalize(fromVertexBuffer.normal), (float3x3)Rotation);
+	sendToRasterizer.outTangent = mul(normalize(fromVertexBuffer.Tangent), (float3x3)Rotation);
 	
 	return sendToRasterizer;
 }

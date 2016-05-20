@@ -156,6 +156,7 @@ public:
 	
 
 	DEMO_APP(HINSTANCE hinst, WNDPROC proc);
+	float calcdist(XMVECTOR v1, XMVECTOR v2);
 	bool Run();
 	bool ShutDown();
 };
@@ -214,7 +215,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	g_Minimized = false;
 	ToggleBumpMap = true;
 	ZeroMemory(&TesselScale, sizeof(TesselScale));
-	TesselScale.scale.x = 15.0f;
+	TesselScale.scale.x = 1.0f;
 
 #pragma endregion
 
@@ -1054,7 +1055,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 	TimeWizard.Restart();
-
 }
 
 void DEMO_APP::init3D(HWND hWnd)
@@ -1245,6 +1245,16 @@ void DEMO_APP::DrawComplexModel(ID3D11Buffer* VertexBuffer, ID3D11Buffer* IndexB
 
 }
 
+float DEMO_APP::calcdist(XMVECTOR v1, XMVECTOR v2)
+{
+	XMVECTOR v;
+
+	v.m128_f32[0] = v1.m128_f32[0] - v2.m128_f32[0];
+	v.m128_f32[1] = v1.m128_f32[1] - v2.m128_f32[1];
+	v.m128_f32[2] = v1.m128_f32[2] - v2.m128_f32[2];
+
+	return sqrt(v.m128_f32[0] *v.m128_f32[0] + v.m128_f32[1] *v.m128_f32[1] + v.m128_f32[2] *v.m128_f32[2]);
+}
 
 //************************************************************
 //************ EXECUTION *************************************
@@ -1487,7 +1497,6 @@ bool DEMO_APP::Run()
 	Lights[2].Position.w = TempXYZW.m128_f32[3];
 
 	WorldShader.viewMatrix = XMMatrixInverse(nullptr, m_viewMatrix);
-
 
 	Lights[2].Direction.x = WorldShader.viewMatrix.r[0].m128_f32[2];
 	Lights[2].Direction.y = WorldShader.viewMatrix.r[1].m128_f32[2];
@@ -1783,33 +1792,55 @@ bool DEMO_APP::Run()
 #pragma region Drawing Tess. Triangle
 
 	translating.Translate = XMMatrixTranslation(3, 0, 0);
-	translating.Scale = 1;
+	translating.Scale = .3f;
 	//translating.Rotation = XMMatrixMultiply(XMMatrixRotationY(timer), translating.Rotation);
 	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
 
-	if (GetAsyncKeyState(VK_SUBTRACT))
-	{
-		TesselScale.scale.x -= TimeWizard.Delta();
-		if (TesselScale.scale.x <= 1.0f)
-			TesselScale.scale.x = 1.0f;
+	//if (GetAsyncKeyState(VK_SUBTRACT))
+	//{
+	//	TesselScale.scale.x -= TimeWizard.Delta();
+	//	if (TesselScale.scale.x <= 1.0f)
+	//		TesselScale.scale.x = 1.0f;
+	//
+	//}
+	//
+	//if (GetAsyncKeyState(VK_ADD))
+	//{
+	//	TesselScale.scale.x += TimeWizard.Delta();
+	//	if (TesselScale.scale.x >= 15.0f)
+	//		TesselScale.scale.x = 15.0f;
+	//
+	//}
 
-	}
+	//Camera position
+	//TempXYZW;
 
-	if (GetAsyncKeyState(VK_ADD))
-	{
-		TesselScale.scale.x += TimeWizard.Delta();
-		if (TesselScale.scale.x >= 15.0f)
-			TesselScale.scale.x = 15.0f;
+	XMVECTOR DeadpoolPOS;
+	DeadpoolPOS.m128_f32[0] = 3.0f;
+	DeadpoolPOS.m128_f32[1] = TempXYZW.m128_f32[1];
+	DeadpoolPOS.m128_f32[2] = 0.0f;
 
-	}
+	float distance = calcdist(TempXYZW, DeadpoolPOS);
+	//float finalScale = 0;
+
+	//Some Code
+	//finalScale = -1 * distance + 12;
+	//
+	//if (finalScale <= 1.0f)
+	//	finalScale = 1.0f;
+	//if (finalScale >= 5.0f)
+	//	finalScale = 5.0f;
+
+	TesselScale.scale.x = distance;
 
 	stride = sizeof(VERTEX);
 	offsets = 0;
 
 	g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &vertexBufferTriangle, &stride, &offsets);
+	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferDeadpool, &stride, &offsets);
+	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferDeadpool, DXGI_FORMAT_R32_UINT, 0);
 	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
 	g_pd3dDeviceContext->VSSetShader(vertexShaderTriangle, NULL, NULL);
 	g_pd3dDeviceContext->PSSetShader(pixelShaderTriangle, NULL, NULL);
@@ -1817,7 +1848,7 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->DSSetShader(domainShaderTriangle, NULL, NULL);
 	g_pd3dDeviceContext->RSSetState(RasterStateWireFrameTriangle);
 
-	g_pd3dDeviceContext->Draw(3, 0);
+	g_pd3dDeviceContext->Draw(DeadpoolIndexCount, 0);
 	ID3D11HullShader* temp1 = nullptr;
 	ID3D11DomainShader* temp2 = nullptr;
 	g_pd3dDeviceContext->HSSetShader(temp1, NULL, NULL);
@@ -1832,6 +1863,7 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
 
 #pragma endregion
+
 	g_pSwapChain->Present(0, 0);
 
 	return true; 

@@ -41,11 +41,19 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 {
 	HS_CONSTANT_DATA_OUTPUT Output;
 
+
+	const float d0 = 1.0f;
+	const float d1 = 5.0f;
+
+	float tess = 4.5f * saturate((d1 - size.x) / (d1 - d0));
+
+	if (tess <= 1.0f)
+		tess = 1.0f;
 	// Insert code to compute Output here
 	Output.EdgeTessFactor[0] = 
 	Output.EdgeTessFactor[1] = 
 	Output.EdgeTessFactor[2] = 
-	Output.InsideTessFactor = size.x; // e.g. could calculate dynamic tessellation factors instead
+	Output.InsideTessFactor = tess; // e.g. could calculate dynamic tessellation factors instead
 
 	return Output;
 }

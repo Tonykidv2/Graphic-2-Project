@@ -1,4 +1,5 @@
 #pragma pack_matrix(row_major)
+
 #define USINGOLDLIGHTCODE FALSE
 
 struct DirectionalLight

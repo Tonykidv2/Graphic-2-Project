@@ -61,7 +61,6 @@ DS_OUTPUT main(
 	Output.vPosition = float4(
 		patch[0].pos * domain.x + patch[1].pos * domain.y + patch[2].pos * domain.z , 1);
 
-	Output.wPosition = Output.vPosition.xyz;
 
 	Output.norm = float3(
 		patch[0].norm * domain.x + 
@@ -78,12 +77,22 @@ DS_OUTPUT main(
 		patch[1].Tangent * domain.y +
 		patch[2].Tangent * domain.z);
 
+	float4x4 scales = float4x4(Scale, 0.0f, 0.0f, 0.0f,
+								0.0f, Scale, 0.0f, 0.0f,
+								0.0f, 0.0f, Scale, 0.0f,
+								0.0f, 0.0f, 0.0f, 1.0f);
+
+	Output.vPosition = mul(Output.vPosition, scales);
+	Output.vPosition = mul(Output.vPosition, Rotation);
+	Output.vPosition = mul(Output.vPosition, Translate);
+
 	Output.vPosition = mul(Output.vPosition, worldMatrix);
+	Output.wPosition = Output.vPosition;
 	Output.vPosition = mul(Output.vPosition, viewMatrix);
 	Output.vPosition = mul(Output.vPosition, projectionMatrix);
 
-	Output.norm = mul(float4(Output.norm, 0), worldMatrix);
-	Output.Tangent = mul(float4(Output.norm, 0), worldMatrix);
+	Output.norm = mul(normalize(float4(Output.norm, 0)), worldMatrix);
+	Output.Tangent = mul(normalize(float4(Output.Tangent, 0)), worldMatrix);
 
 	return Output;
 
