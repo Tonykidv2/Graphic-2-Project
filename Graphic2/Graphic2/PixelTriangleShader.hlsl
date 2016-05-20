@@ -78,33 +78,7 @@ float4 main(INPUT_PIXEL colorFromRasterizer) : SV_TARGET
 	if (WhichTexture == 2)
 		color = Texture1.Sample(FILTER, colorFromRasterizer.uv).rgba;
 
-	//float weight0, weight1, weight2, weight3, weight4;
-	//float normalization;
-	//
-	//weight0 = 1.0f;
-	//weight1 = 0.9f;
-	//weight2 = 0.55f;
-	//weight3 = 0.18f;
-	//weight4 = 0.1f;
-	//
-	//normalization = (weight0 + 2.0f *(weight1 + weight2 + weight3 + weight4));
-	//
-	//weight0 /= normalization;
-	//weight1	/= normalization;
-	//weight2	/= normalization;
-	//weight3	/= normalization;
-	//weight4	/= normalization;
-	//
-	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord1) * weight4;
-	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord2) * weight3;
-	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord3) * weight2;
-	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord4) * weight1;
-	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord5) * weight0;
-	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord6) * weight1;
-	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord7) * weight2;
-	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord8) * weight3;
-	//color += Texture1.Sample(FILTER, colorFromRasterizer.TexCoord9) * weight4;
-
+	
 	float4 finalColor = float4(0, 0, 0, 1);
 
 #if !USINGOLDLIGHTCODE

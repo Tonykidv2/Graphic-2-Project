@@ -6,7 +6,7 @@
 #include <Windows.h>
 #include <vector>
 #include <DirectXMath.h>
-
+#include <thread>
 #include "Load Model.h"
 #include "DDSTextureLoader.h"
 

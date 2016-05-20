@@ -126,13 +126,12 @@ class DEMO_APP
 	unsigned int SwordIndexCount;
 	unsigned int DeadpoolIndexCount;
 	unsigned int SourceIndexCount;
-
+	unsigned int CrashIndexCount;
 
 	void init3D(HWND hWnd);
 	void Clean3d();
-	void CreateVertexIndexBufferModel(ID3D11Buffer** VertexBuffer, ID3D11Buffer** IndexBuffer, ID3D11Device* device, const char* Path, unsigned int& IndexCount);
-	void DrawComplexModel(ID3D11Buffer* VertexBuffer, ID3D11Buffer* IndexBuffer, ID3D11ShaderResourceView* Texture, ID3D11VertexShader* vertexShader
-		, ID3D11PixelShader* pixelShader, unsigned int IndexCount, ID3D11DeviceContext* context);
+	void DrawComplexModel(ID3D11Buffer* VertexBuffer, ID3D11Buffer* IndexBuffer, ID3D11ShaderResourceView* Texture, ID3D11VertexShader* vertexShader, 
+		ID3D11PixelShader* pixelShader, unsigned int IndexCount, ID3D11DeviceContext* context);
 
 	SEND_TO_VRAM_WORLD WorldShader;
 	SEND_TO_VRAM_PIXEL VRAMPixelShader;
@@ -155,6 +154,7 @@ class DEMO_APP
 public:
 	
 
+	void CreateVertexIndexBufferModel(ID3D11Buffer** VertexBuffer, ID3D11Buffer** IndexBuffer, ID3D11Device* device, const char* Path, unsigned int* IndexCount);
 	DEMO_APP(HINSTANCE hinst, WNDPROC proc);
 	float calcdist(XMVECTOR v1, XMVECTOR v2);
 	bool Run();
@@ -218,6 +218,14 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	TesselScale.scale.x = 1.0f;
 
 #pragma endregion
+
+	//thread thread1(&DEMO_APP::CreateVertexIndexBufferModel, this, &VertexBufferSword, &IndexBufferSword, g_pd3dDevice, "deadpool sword 1.obj", &SwordIndexCount);
+	//thread thread2(&DEMO_APP::CreateVertexIndexBufferModel, this, &VertexBufferDeadpool, &IndexBufferDeadpool, g_pd3dDevice, "deadpool.obj", &DeadpoolIndexCount);
+	//thread thread3(&DEMO_APP::CreateVertexIndexBufferModel, this, &DeadpoolInstanceVertexBuffer, &DeadpoolInstanceIndexBuffer, g_pd3dDevice, "DeadpoolInstance.obj", &InstanceIndexCount);
+
+	//thread1.join();
+	//thread2.join();
+	//thread3.join();
 
 #pragma region Creating Star Shape
 
@@ -450,192 +458,18 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 
 #pragma region Creating DeadpoolSword
-
-	LoadModel::LoadObj("deadpool sword 1.obj", verts, uvs, norms, 
-		vert_indices, uvs_indices, norm_indices);
-
-	VERTEX* sword = new VERTEX[vert_indices.size()];
-	unsigned int* SwordIndices = new unsigned int[vert_indices.size()];
-	
-	for (unsigned int i = 0; i < vert_indices.size(); i++)
-	{
-		sword[i].XYZW		= verts[vert_indices[i]];
-		sword[i].UV			= uvs[uvs_indices[i]];
-		sword[i].normals	= norms[norm_indices[i]];
-		SwordIndices[i]		= i;
-	}
-
-	for (unsigned int i = 0; i < vert_indices.size(); i += 3)
-	{
-		XMFLOAT4 v0 = sword[i + 0].XYZW;
-		XMFLOAT4 v1 = sword[i + 1].XYZW;
-		XMFLOAT4 v2 = sword[i + 2].XYZW;
-
-		XMFLOAT3 uv0 = sword[i + 0].UV;
-		XMFLOAT3 uv1 = sword[i + 1].UV;
-		XMFLOAT3 uv2 = sword[i + 2].UV;
-
-		XMFLOAT4 deltaPos1 = XMFLOAT4(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z, v1.w - v0.w);
-		XMFLOAT4 deltaPos2 = XMFLOAT4(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z, v2.w - v0.w);
-
-		XMFLOAT3 deltaUV1 = XMFLOAT3(uv1.x - uv0.x, uv1.y - uv0.y, uv1.z - uv0.z);
-		XMFLOAT3 deltaUV2 = XMFLOAT3(uv2.x - uv0.x, uv2.y - uv0.y, uv2.z - uv0.z);
-
-		float ratio = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-
-		XMFLOAT4 deltaPos1uv2 = XMFLOAT4(deltaPos1.x * deltaUV2.y, deltaPos1.y * deltaUV2.y, deltaPos1.z * deltaUV2.y, deltaPos1.w * deltaUV2.y);
-		XMFLOAT4 deltaPos2uv1 = XMFLOAT4(deltaPos2.x * deltaUV1.y, deltaPos2.y * deltaUV1.y, deltaPos2.z * deltaUV1.y, deltaPos2.w * deltaUV1.y);
-
-		XMFLOAT3 tangent = XMFLOAT3((deltaPos1uv2.x - deltaPos2uv1.x) * ratio, (deltaPos1uv2.y - deltaPos2uv1.y) * ratio,
-			(deltaPos1uv2.z - deltaPos2uv1.z) * ratio);
-
-		XMFLOAT4 deltaPos2uv1b = XMFLOAT4(deltaPos2.x * deltaUV1.x, deltaPos2.y * deltaUV1.x, deltaPos2.z * deltaUV1.x, deltaPos2.x * deltaUV1.x);
-		XMFLOAT4 deltaPos1uv2b = XMFLOAT4(deltaPos1.x * deltaUV2.x, deltaPos1.y * deltaUV2.x, deltaPos1.z * deltaUV2.x, deltaPos1.w * deltaUV2.x);
-
-		XMFLOAT3 bitangent = XMFLOAT3((deltaPos2uv1b.x - deltaPos1uv2b.x) * ratio, (deltaPos2uv1b.y - deltaPos1uv2b.y) * ratio,
-			(deltaPos2uv1b.z - deltaPos1uv2b.z) * ratio);
-
-
-		sword[i + 0].Tangent = tangent;
-		sword[i + 1].Tangent = tangent;
-		sword[i + 2].Tangent = tangent;
-
-		sword[i + 0].BiTangent = tangent;
-		sword[i + 1].BiTangent = tangent;
-		sword[i + 2].BiTangent = tangent;
-	}
-#pragma region VertexBuffer Sword
-	D3D11_BUFFER_DESC SwordbufferDesc;
-	ZeroMemory(&SwordbufferDesc, sizeof(SwordbufferDesc));
-	SwordbufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	SwordbufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	SwordbufferDesc.ByteWidth = sizeof(VERTEX) * vert_indices.size();
-
-	D3D11_SUBRESOURCE_DATA sub_data_Sword;
-	ZeroMemory(&sub_data_Sword, sizeof(sub_data_Sword));
-	sub_data_Sword.pSysMem = sword;
-	g_pd3dDevice->CreateBuffer(&SwordbufferDesc, &sub_data_Sword, &VertexBufferSword);
-#pragma endregion
-
-#pragma region IndexBuffer Sword
-	D3D11_BUFFER_DESC indexBuffDesc_Sword;
-	ZeroMemory(&indexBuffDesc_Sword, sizeof(indexBuffDesc_Sword));
-	indexBuffDesc_Sword.Usage = D3D11_USAGE_IMMUTABLE;
-	indexBuffDesc_Sword.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBuffDesc_Sword.ByteWidth = sizeof(unsigned int) * vert_indices.size();
-
-	D3D11_SUBRESOURCE_DATA indexData_Sword;
-	ZeroMemory(&indexData_Sword, sizeof(indexData_Sword));
-	indexData_Sword.pSysMem = SwordIndices;
-	g_pd3dDevice->CreateBuffer(&indexBuffDesc_Sword, &indexData_Sword, &IndexBufferSword);
-#pragma endregion
-
-	SwordIndexCount = vert_indices.size();
-	delete[] sword;
-	delete[] SwordIndices;
+	//CreateVertexIndexBufferModel(&VertexBufferSword, &IndexBufferSword, g_pd3dDevice, "deadpool sword 1.obj", &SwordIndexCount);
+	thread thread1(&DEMO_APP::CreateVertexIndexBufferModel, this, &VertexBufferSword, &IndexBufferSword, g_pd3dDevice, "deadpool sword 1.obj", &SwordIndexCount);
 
 #pragma endregion
 
-	verts.clear();
-	uvs.clear();
-	norms.clear();
-	vert_indices.clear();
-	uvs_indices.clear();
-	norm_indices.clear();
 
 #pragma region Creating Deadpool
-
-	LoadModel::LoadObj("deadpool.obj", verts, uvs, norms,
-		vert_indices, uvs_indices, norm_indices);
-
-	VERTEX* Deadpool = new VERTEX[vert_indices.size()];
-	unsigned int* DeadpoolIndices = new unsigned int[vert_indices.size()];
-
-	for (unsigned int i = 0; i < vert_indices.size(); i++)
-	{
-		Deadpool[i].XYZW	= verts[vert_indices[i]];
-		Deadpool[i].UV		= uvs[uvs_indices[i]];
-		Deadpool[i].normals = norms[norm_indices[i]];
-		DeadpoolIndices[i]	= i;
-	}
-
-	for (unsigned int i = 0; i < vert_indices.size(); i += 3)
-	{
-		XMFLOAT4 v0 = Deadpool[i + 0].XYZW;
-		XMFLOAT4 v1 = Deadpool[i + 1].XYZW;
-		XMFLOAT4 v2 = Deadpool[i + 2].XYZW;
-
-		XMFLOAT3 uv0 = Deadpool[i + 0].UV;
-		XMFLOAT3 uv1 = Deadpool[i + 1].UV;
-		XMFLOAT3 uv2 = Deadpool[i + 2].UV;
-
-		XMFLOAT4 deltaPos1 = XMFLOAT4(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z, v1.w - v0.w);
-		XMFLOAT4 deltaPos2 = XMFLOAT4(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z, v2.w - v0.w);
-
-		XMFLOAT3 deltaUV1 = XMFLOAT3(uv1.x - uv0.x, uv1.y - uv0.y, uv1.z - uv0.z);
-		XMFLOAT3 deltaUV2 = XMFLOAT3(uv2.x - uv0.x, uv2.y - uv0.y, uv2.z - uv0.z);
-
-		float ratio = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-
-		XMFLOAT4 deltaPos1uv2 = XMFLOAT4(deltaPos1.x * deltaUV2.y, deltaPos1.y * deltaUV2.y, deltaPos1.z * deltaUV2.y, deltaPos1.w * deltaUV2.y);
-		XMFLOAT4 deltaPos2uv1 = XMFLOAT4(deltaPos2.x * deltaUV1.y, deltaPos2.y * deltaUV1.y, deltaPos2.z * deltaUV1.y, deltaPos2.w * deltaUV1.y);
-
-		XMFLOAT3 tangent = XMFLOAT3((deltaPos1uv2.x - deltaPos2uv1.x) * ratio, (deltaPos1uv2.y - deltaPos2uv1.y) * ratio,
-			(deltaPos1uv2.z - deltaPos2uv1.z) * ratio);
-
-		XMFLOAT4 deltaPos2uv1b = XMFLOAT4(deltaPos2.x * deltaUV1.x, deltaPos2.y * deltaUV1.x, deltaPos2.z * deltaUV1.x, deltaPos2.x * deltaUV1.x);
-		XMFLOAT4 deltaPos1uv2b = XMFLOAT4(deltaPos1.x * deltaUV2.x, deltaPos1.y * deltaUV2.x, deltaPos1.z * deltaUV2.x, deltaPos1.w * deltaUV2.x);
-
-		XMFLOAT3 bitangent = XMFLOAT3((deltaPos2uv1b.x - deltaPos1uv2b.x) * ratio, (deltaPos2uv1b.y - deltaPos1uv2b.y) * ratio,
-			(deltaPos2uv1b.z - deltaPos1uv2b.z) * ratio);
-
-
-		Deadpool[i + 0].Tangent = tangent;
-		Deadpool[i + 1].Tangent = tangent;
-		Deadpool[i + 2].Tangent = tangent;
-
-		Deadpool[i + 0].BiTangent = tangent;
-		Deadpool[i + 1].BiTangent = tangent;
-		Deadpool[i + 2].BiTangent = tangent;
-	}
-#pragma region VertexBuffer Deadpool
-	D3D11_BUFFER_DESC DeadpoolbufferDesc;
-	ZeroMemory(&DeadpoolbufferDesc, sizeof(DeadpoolbufferDesc));
-	DeadpoolbufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	DeadpoolbufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	DeadpoolbufferDesc.ByteWidth = sizeof(VERTEX) * vert_indices.size();
-
-	D3D11_SUBRESOURCE_DATA sub_data_Deadpool;
-	ZeroMemory(&sub_data_Deadpool, sizeof(sub_data_Deadpool));
-	sub_data_Deadpool.pSysMem = Deadpool;
-	g_pd3dDevice->CreateBuffer(&DeadpoolbufferDesc, &sub_data_Deadpool, &VertexBufferDeadpool);
-#pragma endregion
-
-#pragma region IndexBuffer Deadpool
-	D3D11_BUFFER_DESC indexBuffDesc_Deadpool;
-	ZeroMemory(&indexBuffDesc_Deadpool, sizeof(indexBuffDesc_Deadpool));
-	indexBuffDesc_Deadpool.Usage = D3D11_USAGE_IMMUTABLE;
-	indexBuffDesc_Deadpool.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBuffDesc_Deadpool.ByteWidth = sizeof(unsigned int) * vert_indices.size();
-
-	D3D11_SUBRESOURCE_DATA indexData_Deadpool;
-	ZeroMemory(&indexData_Deadpool, sizeof(indexData_Deadpool));
-	indexData_Deadpool.pSysMem = DeadpoolIndices;
-	g_pd3dDevice->CreateBuffer(&indexBuffDesc_Deadpool, &indexData_Deadpool, &IndexBufferDeadpool);
-#pragma endregion
-
-	DeadpoolIndexCount = vert_indices.size();
-	delete[] Deadpool;
-	delete[] DeadpoolIndices;
+	//CreateVertexIndexBufferModel(&VertexBufferDeadpool, &IndexBufferDeadpool, g_pd3dDevice, "deadpool.obj", &DeadpoolIndexCount);
+	thread thread2(&DEMO_APP::CreateVertexIndexBufferModel, this, &VertexBufferDeadpool, &IndexBufferDeadpool, g_pd3dDevice, "deadpool.obj", &DeadpoolIndexCount);
 
 #pragma endregion
 
-	verts.clear();
-	uvs.clear();
-	norms.clear();
-	vert_indices.clear();
-	uvs_indices.clear();
-	norm_indices.clear();
 
 #pragma region creating LightSource
 	LoadModel::LoadObj("LightSource.obj", verts, uvs, norms,
@@ -881,6 +715,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	CreateDDSTextureFromFile(g_pd3dDevice, L"DeadPool_NORMAL.dds", NULL, &DeadpoolNORMShaderView);
 	CreateDDSTextureFromFile(g_pd3dDevice, L"BrickWall_NORMAL.dds", NULL, &FloorNORMShaderView);
 	CreateDDSTextureFromFile(g_pd3dDevice, L"DeadpoolSword_Normal.dds", NULL, &SwordNORMShaderView);
+
 #pragma endregion
 
 #pragma region Sampler
@@ -1001,7 +836,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	
 	g_pd3dDevice->CreateBuffer(&instanceBufferDesc, &instanceData, &InstanceBuffer);
 	
-	CreateVertexIndexBufferModel(&DeadpoolInstanceVertexBuffer, &DeadpoolInstanceIndexBuffer, g_pd3dDevice, "DeadpoolInstance.obj", InstanceIndexCount);
+	//CreateVertexIndexBufferModel(&DeadpoolInstanceVertexBuffer, &DeadpoolInstanceIndexBuffer, g_pd3dDevice, "DeadpoolInstance.obj", &InstanceIndexCount);
+	thread thread3(&DEMO_APP::CreateVertexIndexBufferModel, this, &DeadpoolInstanceVertexBuffer, &DeadpoolInstanceIndexBuffer, g_pd3dDevice, "DeadpoolInstance.obj", &InstanceIndexCount);
+
 #pragma endregion
 
 #pragma region Tesselation
@@ -1019,7 +856,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	Triangle_Vert[2].UV = XMFLOAT3(1.0f, 0.5f, 0.0f);
 	Triangle_Vert[2].normals = XMFLOAT3(0.0f, 0.0f, -1.0f);
 
-
 	D3D11_BUFFER_DESC Desc;
 	ZeroMemory(&Desc, sizeof(Desc));
 	Desc.Usage = D3D11_USAGE_IMMUTABLE;
@@ -1035,7 +871,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	ZeroMemory(&rasterDesc, sizeof(rasterDesc));
 	rasterDesc.AntialiasedLineEnable = false;
-	rasterDesc.CullMode = D3D11_CULL_NONE;
+	rasterDesc.CullMode = D3D11_CULL_FRONT;
 	rasterDesc.DepthBias = 0;
 	rasterDesc.DepthBiasClamp = 0;
 	rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
@@ -1053,6 +889,11 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	g_pd3dDevice->CreateRasterizerState(&rasterDesc, &RasterStateSoildTriangle);
 
 #pragma endregion
+
+
+	thread1.join();
+	thread2.join();
+	thread3.join();
 
 	TimeWizard.Restart();
 }
@@ -1131,7 +972,7 @@ void DEMO_APP::init3D(HWND hWnd)
 }
 
 void DEMO_APP::CreateVertexIndexBufferModel(ID3D11Buffer** VertexBuffer, ID3D11Buffer** IndexBuffer, ID3D11Device* device, const char* Path, 
-	unsigned int& IndexCount)
+	unsigned int* IndexCount)
 {
 
 	vector<XMFLOAT4> verts;
@@ -1223,7 +1064,7 @@ void DEMO_APP::CreateVertexIndexBufferModel(ID3D11Buffer** VertexBuffer, ID3D11B
 
 #pragma endregion
 
-	IndexCount = vert_indices.size();
+	*IndexCount = vert_indices.size();
 	delete[] Model;
 	delete[] ModelIndices;
 
@@ -1793,67 +1634,45 @@ bool DEMO_APP::Run()
 
 	translating.Translate = XMMatrixTranslation(3, 0, 0);
 	translating.Scale = .3f;
-	//translating.Rotation = XMMatrixMultiply(XMMatrixRotationY(timer), translating.Rotation);
 	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
+	/*VRAMPixelShader.whichTexture = 2;
+	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
+	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
+	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);*/
 
-	//if (GetAsyncKeyState(VK_SUBTRACT))
-	//{
-	//	TesselScale.scale.x -= TimeWizard.Delta();
-	//	if (TesselScale.scale.x <= 1.0f)
-	//		TesselScale.scale.x = 1.0f;
-	//
-	//}
-	//
-	//if (GetAsyncKeyState(VK_ADD))
-	//{
-	//	TesselScale.scale.x += TimeWizard.Delta();
-	//	if (TesselScale.scale.x >= 15.0f)
-	//		TesselScale.scale.x = 15.0f;
-	//
-	//}
-
-	//Camera position
-	//TempXYZW;
-
+	
 	XMVECTOR DeadpoolPOS;
 	DeadpoolPOS.m128_f32[0] = 3.0f;
 	DeadpoolPOS.m128_f32[1] = TempXYZW.m128_f32[1];
 	DeadpoolPOS.m128_f32[2] = 0.0f;
-
+	
 	float distance = calcdist(TempXYZW, DeadpoolPOS);
-	//float finalScale = 0;
-
-	//Some Code
-	//finalScale = -1 * distance + 12;
-	//
-	//if (finalScale <= 1.0f)
-	//	finalScale = 1.0f;
-	//if (finalScale >= 5.0f)
-	//	finalScale = 5.0f;
-
+	
 	TesselScale.scale.x = distance;
-
+	
 	stride = sizeof(VERTEX);
 	offsets = 0;
-
+	
 	g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferDeadpool, &stride, &offsets);
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferDeadpool, DXGI_FORMAT_R32_UINT, 0);
+	/*g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferCrash, &stride, &offsets);
+	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferCrash, DXGI_FORMAT_R32_UINT, 0);*/
 	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
 	g_pd3dDeviceContext->VSSetShader(vertexShaderTriangle, NULL, NULL);
 	g_pd3dDeviceContext->PSSetShader(pixelShaderTriangle, NULL, NULL);
 	g_pd3dDeviceContext->HSSetShader(hullShaderTriangle, NULL, NULL);
 	g_pd3dDeviceContext->DSSetShader(domainShaderTriangle, NULL, NULL);
 	g_pd3dDeviceContext->RSSetState(RasterStateWireFrameTriangle);
-
+	
 	g_pd3dDeviceContext->Draw(DeadpoolIndexCount, 0);
 	ID3D11HullShader* temp1 = nullptr;
 	ID3D11DomainShader* temp2 = nullptr;
 	g_pd3dDeviceContext->HSSetShader(temp1, NULL, NULL);
 	g_pd3dDeviceContext->DSSetShader(temp2, NULL, NULL);
-	g_pd3dDeviceContext->RSSetState(RasterStateSoildTriangle);
+	g_pd3dDeviceContext->RSSetState(DefaultRasterState);
 
 	translating.Translate = XMMatrixTranslation(0, 0, 0);
 	translating.Scale = 1;
@@ -1951,6 +1770,7 @@ void DEMO_APP::Clean3d()
 	RasterStateWireFrameTriangle->Release();
 	RasterStateSoildTriangle->Release();
 	CostantBufferTessScale->Release();
+
 }
 
 //************************************************************
