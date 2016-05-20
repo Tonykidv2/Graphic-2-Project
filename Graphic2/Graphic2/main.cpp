@@ -51,23 +51,23 @@ class DEMO_APP
 	XTime							TimeWizard;
 	
 	//Model Data
-	ID3D11Buffer*					VertexBufferStar;
-	ID3D11Buffer*					IndexBufferStar;
-	ID3D11Buffer*					VertexBufferPlane;
-	ID3D11Buffer*					IndexBufferPlane;
-	ID3D11Buffer*					VertexBufferSkyBox;
-	ID3D11Buffer*					IndexBufferSkyBox;
-	ID3D11Buffer*					VertexBufferSword;
-	ID3D11Buffer*					IndexBufferSword;
-	ID3D11Buffer*					VertexBufferDeadpool;
-	ID3D11Buffer*					IndexBufferDeadpool;
-	ID3D11Buffer*					VertexBufferSource;
-	ID3D11Buffer*					IndexBufferSource;
+	ID3D11Buffer*					VertexBufferStar = nullptr;
+	ID3D11Buffer*					IndexBufferStar = nullptr;
+	ID3D11Buffer*					VertexBufferPlane = nullptr;
+	ID3D11Buffer*					IndexBufferPlane = nullptr;
+	ID3D11Buffer*					VertexBufferSkyBox = nullptr;
+	ID3D11Buffer*					IndexBufferSkyBox = nullptr;
+	ID3D11Buffer*					VertexBufferSword = nullptr;
+	ID3D11Buffer*					IndexBufferSword = nullptr;
+	ID3D11Buffer*					VertexBufferDeadpool = nullptr;
+	ID3D11Buffer*					IndexBufferDeadpool = nullptr;
+	ID3D11Buffer*					VertexBufferSource = nullptr;
+	ID3D11Buffer*					IndexBufferSource = nullptr;
 
 	//Instances
 	ID3D11Buffer*					InstanceBuffer;
-	ID3D11Buffer*					DeadpoolInstanceVertexBuffer;
-	ID3D11Buffer*					DeadpoolInstanceIndexBuffer;
+	ID3D11Buffer*					DeadpoolInstanceVertexBuffer = nullptr;
+	ID3D11Buffer*					DeadpoolInstanceIndexBuffer = nullptr;
 	unsigned int					InstanceIndexCount;
 	Instance						list[4];
 
@@ -460,14 +460,12 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma region Creating DeadpoolSword
 	//CreateVertexIndexBufferModel(&VertexBufferSword, &IndexBufferSword, g_pd3dDevice, "deadpool sword 1.obj", &SwordIndexCount);
 	thread thread1(&DEMO_APP::CreateVertexIndexBufferModel, this, &VertexBufferSword, &IndexBufferSword, g_pd3dDevice, "deadpool sword 1.obj", &SwordIndexCount);
-
 #pragma endregion
 
 
 #pragma region Creating Deadpool
 	//CreateVertexIndexBufferModel(&VertexBufferDeadpool, &IndexBufferDeadpool, g_pd3dDevice, "deadpool.obj", &DeadpoolIndexCount);
 	thread thread2(&DEMO_APP::CreateVertexIndexBufferModel, this, &VertexBufferDeadpool, &IndexBufferDeadpool, g_pd3dDevice, "deadpool.obj", &DeadpoolIndexCount);
-
 #pragma endregion
 
 
@@ -658,7 +656,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	texture2D.Format = DXGI_FORMAT_D32_FLOAT;
 	texture2D.MipLevels = 1;
 	texture2D.ArraySize = 1;
-	texture2D.SampleDesc.Count = 1;
+	texture2D.SampleDesc.Count = 4;
 	g_pd3dDevice->CreateTexture2D(&texture2D, NULL, &g_TexBuffer);
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC stencil;
@@ -680,7 +678,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	rasterDesc.SlopeScaledDepthBias = 0;
 	rasterDesc.DepthBiasClamp = 0;
 	rasterDesc.ScissorEnable = false;
-	rasterDesc.MultisampleEnable = false;
+	rasterDesc.MultisampleEnable = true;
 
 	g_pd3dDevice->CreateRasterizerState(&rasterDesc, &DefaultRasterState);
 #pragma endregion
@@ -878,7 +876,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	rasterDesc.FrontCounterClockwise = false;
 	rasterDesc.SlopeScaledDepthBias = 0;
 	rasterDesc.ScissorEnable = false;
-	rasterDesc.MultisampleEnable = false;
+	rasterDesc.MultisampleEnable = true;
 	rasterDesc.DepthClipEnable = true;
 
 	g_pd3dDevice->CreateRasterizerState(&rasterDesc, &RasterStateWireFrameTriangle);
@@ -891,9 +889,12 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 
-	thread1.join();
-	thread2.join();
-	thread3.join();
+	//thread1.join();
+	//thread2.join();
+	//thread3.join();
+	thread1.detach();
+	thread2.detach();
+	thread3.detach();
 
 	TimeWizard.Restart();
 }
@@ -915,7 +916,7 @@ void DEMO_APP::init3D(HWND hWnd)
 	scd.BufferDesc.Width = BACKBUFFER_WIDTH;
 	scd.BufferDesc.Height = BACKBUFFER_HEIGHT;
 	scd.OutputWindow = hWnd;                                // the window to be used
-	scd.SampleDesc.Count = 1;                               // how many multisamples
+	scd.SampleDesc.Count = 4;                               // how many multisamples
 															//scd.SampleDesc.Quality = 1;								
 	scd.Windowed = TRUE;                                    // windowed/full-screen mode
 	scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;		// Special Flags
@@ -1520,8 +1521,8 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->PSSetShaderResources(2, 1, &SwordNORMShaderView);
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferSword, &stride, &offsets);
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferSword, DXGI_FORMAT_R32_UINT, 0);
-
-	g_pd3dDeviceContext->DrawIndexed(SwordIndexCount, 0, 0);
+	if(IndexBufferSword)
+	 g_pd3dDeviceContext->DrawIndexed(SwordIndexCount, 0, 0);
 
 #pragma endregion
 
@@ -1552,8 +1553,8 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->PSSetShaderResources(2, 1, &DeadpoolNORMShaderView);
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferDeadpool, &stride, &offsets);
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferDeadpool, DXGI_FORMAT_R32_UINT, 0);
-	
-	g_pd3dDeviceContext->DrawIndexed(DeadpoolIndexCount, 0, 0);
+	if(IndexBufferDeadpool)
+		g_pd3dDeviceContext->DrawIndexed(DeadpoolIndexCount, 0, 0);
 
 	translating.Translate = XMMatrixTranslation(0, 0, 0);
 	translating.Rotation = XMMatrixIdentity();
@@ -1616,7 +1617,8 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &DeadpoolInstanceVertexBuffer, &stride, &offsets);
 	g_pd3dDeviceContext->IASetIndexBuffer(DeadpoolInstanceIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	
-	g_pd3dDeviceContext->DrawInstanced(InstanceIndexCount, 4, 0, 0);
+	if(DeadpoolInstanceIndexBuffer)
+		g_pd3dDeviceContext->DrawInstanced(InstanceIndexCount, 4, 0, 0);
 	
 	translating.Translate = XMMatrixIdentity();
 	translating.Scale = 1.0f;
@@ -1637,10 +1639,6 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->Map(constantBuffer[1], 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource2);
 	memcpy_s(m_mapSource2.pData, sizeof(TRANSLATOR), &translating, sizeof(TRANSLATOR));
 	g_pd3dDeviceContext->Unmap(constantBuffer[1], 0);
-	/*VRAMPixelShader.whichTexture = 2;
-	g_pd3dDeviceContext->Map(constantPixelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &m_mapSource1);
-	memcpy_s(m_mapSource1.pData, sizeof(SEND_TO_VRAM_PIXEL), &VRAMPixelShader, sizeof(SEND_TO_VRAM_PIXEL));
-	g_pd3dDeviceContext->Unmap(constantPixelBuffer, 0);*/
 
 	
 	XMVECTOR DeadpoolPOS;
@@ -1658,8 +1656,6 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 	g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferDeadpool, &stride, &offsets);
 	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferDeadpool, DXGI_FORMAT_R32_UINT, 0);
-	/*g_pd3dDeviceContext->IASetVertexBuffers(0, 1, &VertexBufferCrash, &stride, &offsets);
-	g_pd3dDeviceContext->IASetIndexBuffer(IndexBufferCrash, DXGI_FORMAT_R32_UINT, 0);*/
 	g_pd3dDeviceContext->IASetInputLayout(DirectInputLay[0]);
 	g_pd3dDeviceContext->VSSetShader(vertexShaderTriangle, NULL, NULL);
 	g_pd3dDeviceContext->PSSetShader(pixelShaderTriangle, NULL, NULL);
@@ -1667,7 +1663,9 @@ bool DEMO_APP::Run()
 	g_pd3dDeviceContext->DSSetShader(domainShaderTriangle, NULL, NULL);
 	g_pd3dDeviceContext->RSSetState(RasterStateWireFrameTriangle);
 	
-	g_pd3dDeviceContext->Draw(DeadpoolIndexCount, 0);
+	if(IndexBufferDeadpool)
+		g_pd3dDeviceContext->Draw(DeadpoolIndexCount, 0);
+
 	ID3D11HullShader* temp1 = nullptr;
 	ID3D11DomainShader* temp2 = nullptr;
 	g_pd3dDeviceContext->HSSetShader(temp1, NULL, NULL);
@@ -1834,7 +1832,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 							   tempBuffer->Release();
 
-							   g_pd3dDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, NULL);
+							  // g_pd3dDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, NULL);
 							  
 							   /*float nWidth = LOWORD(lParam);
 							   float nHeight = HIWORD(lParam);*/
@@ -1864,7 +1862,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 							   texture2D.Format = DXGI_FORMAT_D32_FLOAT;
 							   texture2D.MipLevels = 1;
 							   texture2D.ArraySize = 1;
-							   texture2D.SampleDesc.Count = 1;
+							   texture2D.SampleDesc.Count = 4;
 							   g_pd3dDevice->CreateTexture2D(&texture2D, NULL, &g_TexBuffer);
 
 							   g_StencilView->Release();
@@ -1875,6 +1873,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 							   stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;		//use this enum to incorporate sampleDecs.count/.Quality values otherwise use D3D11_DSV_DIMENSION_TEXTURE2D
 							   stencil.Texture2D.MipSlice = 0;
 							   g_pd3dDevice->CreateDepthStencilView(g_TexBuffer, &stencil, &g_StencilView);
+
+							   g_pd3dDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_StencilView);
 
 							   g_DirectView.Height = nHeight;
 							   g_DirectView.Width = nWidth;

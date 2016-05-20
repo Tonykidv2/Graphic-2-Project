@@ -49,6 +49,7 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 
 	if (tess <= 1.0f)
 		tess = 1.0f;
+
 	// Insert code to compute Output here
 	Output.EdgeTessFactor[0] = 
 	Output.EdgeTessFactor[1] = 
