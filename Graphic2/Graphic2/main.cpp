@@ -462,7 +462,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	thread thread1(&DEMO_APP::CreateVertexIndexBufferModel, this, &VertexBufferSword, &IndexBufferSword, g_pd3dDevice, "deadpool sword 1.obj", &SwordIndexCount);
 #pragma endregion
 
-
 #pragma region Creating Deadpool
 	//CreateVertexIndexBufferModel(&VertexBufferDeadpool, &IndexBufferDeadpool, g_pd3dDevice, "deadpool.obj", &DeadpoolIndexCount);
 	thread thread2(&DEMO_APP::CreateVertexIndexBufferModel, this, &VertexBufferDeadpool, &IndexBufferDeadpool, g_pd3dDevice, "deadpool.obj", &DeadpoolIndexCount);
@@ -1797,7 +1796,6 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE, LPTSTR, int )
 	return 0; 
 }
 
-
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
     if(GetAsyncKeyState(VK_ESCAPE))
@@ -1832,10 +1830,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 							   tempBuffer->Release();
 
-							  // g_pd3dDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, NULL);
+							   //g_pd3dDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, NULL);
 							  
-							   /*float nWidth = LOWORD(lParam);
-							   float nHeight = HIWORD(lParam);*/
 
 							   float nWidth = Chaindsc.BufferDesc.Width;
 							   float nHeight = Chaindsc.BufferDesc.Height;
